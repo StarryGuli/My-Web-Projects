@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>MPU6050 四轴姿态可视化</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      overflow: hidden;
+    }
+    .topbar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(to right, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #1f2937;
+      z-index: 10;
+    }
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .spacer { flex: 1; }
+    button {
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    #connectBtn { background: #22c55e; color: #020617; }
+    #disconnectBtn { background: #4b5563; color: #e5e7eb; }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .status {
+      font-size: 11px;
+      color: #9ca3af;
+      min-width: 180px;
+    }
+    .angles {
+      font-size: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+    }
+    .angles span strong { font-weight: 600; color: #e5e7eb; }
+    #sceneContainer {
+      position: absolute;
+      left: 0;
+      top: 40px;
+      right: 0;
+      bottom: 0;
+    }
+    .hud {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      background: rgba(15,23,42,0.85);
+      border-radius: 10px;
+      padding: 8px 10px;
+      border: 1px solid #1f2937;
+      font-size: 11px;
+      max-width: 340px;
+      color: #9ca3af;
+    }
+    .hud code { font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>MPU6050 四轴姿态可视化</h1>
+    <span class="status" id="status">状态：未连接</span>
+    <div class="angles" id="angles">
+      <span><strong>Roll</strong>: 0°</span>
+      <span><strong>Pitch</strong>: 0°</span>
+      <span><strong>Yaw</strong>: 0°</span>
+    </div>
+    <div class="spacer"></div>
+    <button id="connectBtn">连接串口</button>
+    <button id="disconnectBtn" disabled>断开</button>
+  </div>
+  <div id="sceneContainer"></div>
+  <div class="hud">
+    串口要求：115200，格式例如：<br />
+    <code>AX=2166 AY=-178 AZ=17254 | GX=-16 GY=-5 GZ=-24</code><br />
+    <br />
+    - AX/AY/AZ: 原始加速度计值 (±2g，16384 ≈ 1g)<br />
+    - GX/GY/GZ: 原始陀螺仪值 (±250°/s，131 ≈ 1°/s)<br />
+    - 本页面使用简单互补滤波，仅用于演示，非严肃飞控。
+  </div>
+
+  <script>
+    // ========== Three.js 场景 ==========
+    const container = document.getElementById('sceneContainer');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020617);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight-40), 0.1, 100);
+    camera.position.set(0, 1.2, 3.2);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight - 40);
+    container.appendChild(renderer.domElement);
+
+    // 环境光 + 方向光
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(3, 5, 2);
+    scene.add(dirLight);
+
+    // 地板/网格
+    const grid = new THREE.GridHelper(10, 20, 0x1f2933, 0x111827);
+    grid.position.y = -1.2;
+    scene.add(grid);
+
+    // 四轴机架
+    const quadGroup = new THREE.Group();
+
+    // 中心机身
+    const bodyGeom = new THREE.BoxGeometry(0.25, 0.05, 0.25);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.4, roughness: 0.3 });
+    const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+    quadGroup.add(bodyMesh);
+
+    // 四个机臂
+    const armGeom = new THREE.BoxGeometry(0.8, 0.03, 0.06);
+    const armMatFrontBack = new THREE.MeshStandardMaterial({ color: 0xf97316 }); // 前后橙
+    const armMatLeftRight = new THREE.MeshStandardMaterial({ color: 0x22c55e }); // 左右绿
+
+    const armFB = new THREE.Mesh(armGeom, armMatFrontBack);
+    quadGroup.add(armFB);
+
+    const armLRGeom = new THREE.BoxGeometry(0.06, 0.03, 0.8);
+    const armLR = new THREE.Mesh(armLRGeom, armMatLeftRight);
+    quadGroup.add(armLR);
+
+    // 四个电机+桨盘
+    const motorGeom = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 24);
+    const motorMatFront = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const motorMatBack = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const motorMatSide = new THREE.MeshStandardMaterial({ color: 0xfacc15 });
+
+    const motorPositions = [
+      { x:  0.4, z:  0.4, mat: motorMatFront }, // 前右
+      { x: -0.4, z:  0.4, mat: motorMatSide },  // 前左
+      { x: -0.4, z: -0.4, mat: motorMatBack },  // 后左
+      { x:  0.4, z: -0.4, mat: motorMatSide }   // 后右
+    ];
+    motorPositions.forEach(pos => {
+      const m = new THREE.Mesh(motorGeom, pos.mat);
+      m.rotation.x = Math.PI / 2;
+      m.position.set(pos.x, 0.07, pos.z);
+      quadGroup.add(m);
+
+      // 桨盘
+      const propGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.01, 32);
+      const propMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.3, roughness: 0.2 });
+      const prop = new THREE.Mesh(propGeom, propMat);
+      prop.rotation.x = Math.PI / 2;
+      prop.position.set(pos.x, 0.09, pos.z);
+      quadGroup.add(prop);
+    });
+
+    scene.add(quadGroup);
+
+    // 坐标轴指示（可选，保留一个小的）
+    const axesHelper = new THREE.AxesHelper(0.6);
+    axesHelper.position.set(0, -0.6, 0);
+    scene.add(axesHelper);
+
+    // 渲染循环
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      const h = window.innerHeight - 40;
+      camera.aspect = window.innerWidth / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, h);
+    });
+
+    // ========== 姿态解算（互补滤波） ==========
+    let roll = 0, pitch = 0, yaw = 0;      // 单位：弧度
+    let lastTime = null;
+    const alpha = 0.98;     // 互补滤波系数，可调
+    const RAD2DEG = 180 / Math.PI;
+    const DEG2RAD = Math.PI / 180;
+
+    // 根据加速度算姿态（静态）
+    function accelToAngles(ax, ay, az) {
+      // 归一化
+      const nx = ax;
+      const ny = ay;
+      const nz = az;
+      // 常见近似：roll = atan2(AY, AZ)，pitch = atan2(-AX, sqrt(AY^2 + AZ^2))
+      const rollAcc  = Math.atan2(ny, nz);
+      const pitchAcc = Math.atan2(-nx, Math.sqrt(ny*ny + nz*nz));
+      return { rollAcc, pitchAcc };
+    }
+
+    function updateAttitude(axRaw, ayRaw, azRaw, gxRaw, gyRaw, gzRaw) {
+      const now = performance.now();
+      let dt = 0.02; // fallback
+      if (lastTime !== null) {
+        dt = (now - lastTime) / 1000;
+      }
+      lastTime = now;
+
+      // 转物理量
+      const ax = axRaw / 16384.0;
+      const ay = ayRaw / 16384.0;
+      const az = azRaw / 16384.0;
+
+      const gx = (gxRaw / 131.0) * DEG2RAD; // rad/s
+      const gy = (gyRaw / 131.0) * DEG2RAD;
+      const gz = (gzRaw / 131.0) * DEG2RAD;
+
+      // 陀螺积分
+      const rollGyro  = roll  + gx * dt;
+      const pitchGyro = pitch + gy * dt;
+      const yawGyro   = yaw   + gz * dt;
+
+      // 加速度姿态
+      const { rollAcc, pitchAcc } = accelToAngles(ax, ay, az);
+
+      // 互补滤波
+      roll  = alpha * rollGyro  + (1 - alpha) * rollAcc;
+      pitch = alpha * pitchGyro + (1 - alpha) * pitchAcc;
+      yaw   = yawGyro; // 简单积分，没磁力计会漂移，但演示够用了
+
+      // 应用到四轴模型
+      quadGroup.rotation.set(pitch, yaw, roll);  // 注意顺序：绕 x(pitch)、y(yaw)、z(roll)
+
+      // 更新顶部角度显示
+      const anglesDom = document.getElementById('angles');
+      const rDeg = (roll  * RAD2DEG).toFixed(1);
+      const pDeg = (pitch * RAD2DEG).toFixed(1);
+      const yDeg = (yaw   * RAD2DEG).toFixed(1);
+      const spans = anglesDom.querySelectorAll('span');
+      spans[0].innerHTML = `<strong>Roll</strong>: ${rDeg}°`;
+      spans[1].innerHTML = `<strong>Pitch</strong>: ${pDeg}°`;
+      spans[2].innerHTML = `<strong>Yaw</strong>: ${yDeg}°`;
+    }
+
+    // ========== 串口部分（Web Serial） ==========
+    let port = null;
+    let reader = null;
+    let reading = false;
+    const baudRate = 115200;
+    const statusEl = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+
+    const lineRegex = /AX=([-\d]+)\s+AY=([-\d]+)\s+AZ=([-\d]+)\s*\|\s*GX=([-\d]+)\s+GY=([-\d]+)\s+GZ=([-\d]+)/;
+
+    async function readLoop() {
+      const textDecoder = new TextDecoderStream();
+      const readableClosed = port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
+      reading = true;
+      let buffer = "";
+      statusEl.textContent = "状态：已连接，正在接收数据…";
+
+      try {
+        while (reading) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            buffer += value;
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop();
+            for (const line of lines) {
+              const m = line.match(lineRegex);
+              if (!m) continue;
+              const ax = parseInt(m[1], 10);
+              const ay = parseInt(m[2], 10);
+              const az = parseInt(m[3], 10);
+              const gx = parseInt(m[4], 10);
+              const gy = parseInt(m[5], 10);
+              const gz = parseInt(m[6], 10);
+              updateAttitude(ax, ay, az, gx, gy, gz);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "状态：读取出错：" + err;
+      } finally {
+        reading = false;
+        reader && reader.releaseLock();
+        await readableClosed.catch(() => {});
+        statusEl.textContent = "状态：已断开";
+      }
+    }
+
+    connectBtn.addEventListener('click', async () => {
+      if (!('serial' in navigator)) {
+        alert("当前浏览器不支持 Web Serial API，请使用最新版 Chrome / Edge。");
+        return;
+      }
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate });
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        statusEl.textContent = "状态：串口已打开，等待数据…";
+        lastTime = null;
+        readLoop();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "状态：打开串口失败：" + err;
+      }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+      disconnectBtn.disabled = true;
+      reading = false;
+      try {
+        if (reader) await reader.cancel();
+        if (port) await port.close();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        connectBtn.disabled = false;
+        statusEl.textContent = "状态：已手动断开";
+      }
+    });
+
+    window.addEventListener('beforeunload', async () => {
+      reading = false;
+      try {
+        reader && (await reader.cancel());
+        port && (await port.close());
+      } catch (e) {}
+    });
+  </script>
+</body>
+</html>

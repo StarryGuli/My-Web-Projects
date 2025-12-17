@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>MPU6050 串口实时可视化</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    button {
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: none;
+      background: #22c55e;
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: #4b5563;
+      color: #e5e7eb;
+    }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #111827;
+      border: 1px solid #374151;
+    }
+    .status {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+      gap: 12px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+    .card-title {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 220px !important;
+      background: #020617;
+      border-radius: 10px;
+      padding: 4px;
+    }
+    #log {
+      width: 100%;
+      height: 430px;
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      padding: 6px;
+      font-family: Consolas, "Fira Code", monospace;
+      font-size: 11px;
+      resize: none;
+      white-space: pre;
+      overflow: auto;
+    }
+    .kv {
+      font-size: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2px 8px;
+      margin-top: 4px;
+      color: #d1d5db;
+    }
+    .kv span {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <h1>MPU6050 串口实时可视化</h1>
+  <div class="row">
+    <button id="connectBtn">连接串口</button>
+    <button id="disconnectBtn" class="secondary" disabled>断开</button>
+    <span class="badge">波特率：115200，格式：AX=.. AY=.. AZ=.. | GX=.. GY=.. GZ=..</span>
+  </div>
+  <div class="row">
+    <span id="status" class="status">状态：未连接</span>
+  </div>
+
+  <div class="layout">
+    <!-- 左侧：图表 -->
+    <div class="card">
+      <div class="card">
+        <div class="card-title">加速度计 (AX / AY / AZ)</div>
+        <canvas id="accChart"></canvas>
+      </div>
+      <div style="height: 10px"></div>
+      <div class="card">
+        <div class="card-title">陀螺仪 (GX / GY / GZ)</div>
+        <canvas id="gyroChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 右侧：当前数值 + 串口日志 -->
+    <div class="card">
+      <div class="card-title">当前数值</div>
+      <div class="kv" id="currentValues">
+        <span>AX: —</span><span>AY: —</span><span>AZ: —</span>
+        <span>GX: —</span><span>GY: —</span><span>GZ: —</span>
+      </div>
+      <div style="height: 10px"></div>
+      <div class="card-title">串口原始数据</div>
+      <textarea id="log" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    // ==== 串口相关 ====
+    let port = null;
+    let reader = null;
+    let reading = false;
+    const baudRate = 115200;
+
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const currentValuesEl = document.getElementById('currentValues');
+
+    // ==== Chart.js 初始化 ====
+    const maxPoints = 200;  // 只保留最近 N 个点
+
+    const labels = [];
+    const accData = { ax: [], ay: [], az: [] };
+    const gyroData = { gx: [], gy: [], gz: [] };
+
+    const accCtx = document.getElementById('accChart').getContext('2d');
+    const gyroCtx = document.getElementById('gyroChart').getContext('2d');
+
+    const accChart = new Chart(accCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'AX', data: accData.ax, borderColor: 'rgba(96,165,250,1)', backgroundColor: 'rgba(96,165,250,0.15)', pointRadius: 0, tension: 0.2 },
+          { label: 'AY', data: accData.ay, borderColor: 'rgba(52,211,153,1)', backgroundColor: 'rgba(52,211,153,0.15)', pointRadius: 0, tension: 0.2 },
+          { label: 'AZ', data: accData.az, borderColor: 'rgba(248,113,113,1)', backgroundColor: 'rgba(248,113,113,0.15)', pointRadius: 0, tension: 0.2 }
+        ]
+      },
+      options: commonChartOptions()
+    });
+
+    const gyroChart = new Chart(gyroCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'GX', data: gyroData.gx, borderColor: 'rgba(129,140,248,1)', backgroundColor: 'rgba(129,140,248,0.15)', pointRadius: 0, tension: 0.2 },
+          { label: 'GY', data: gyroData.gy, borderColor: 'rgba(244,114,182,1)', backgroundColor: 'rgba(244,114,182,0.15)', pointRadius: 0, tension: 0.2 },
+          { label: 'GZ', data: gyroData.gz, borderColor: 'rgba(34,197,94,1)', backgroundColor: 'rgba(34,197,94,0.15)', pointRadius: 0, tension: 0.2 }
+        ]
+      },
+      options: commonChartOptions()
+    });
+
+    function commonChartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#e5e7eb', font: { size: 11 } } }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: '样本序号', color: '#9ca3af', font: { size: 11 } },
+            ticks: { color: '#9ca3af', maxTicksLimit: 10 },
+            grid: { color: 'rgba(55,65,81,0.4)' }
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(55,65,81,0.4)' }
+          }
+        }
+      };
+    }
+
+    function appendSample(ax, ay, az, gx, gy, gz) {
+      const idx = labels.length ? labels[labels.length - 1] + 1 : 1;
+      labels.push(idx);
+      accData.ax.push(ax);
+      accData.ay.push(ay);
+      accData.az.push(az);
+      gyroData.gx.push(gx);
+      gyroData.gy.push(gy);
+      gyroData.gz.push(gz);
+
+      // 滚动窗口
+      if (labels.length > maxPoints) {
+        labels.shift();
+        Object.keys(accData).forEach(k => accData[k].shift());
+        Object.keys(gyroData).forEach(k => gyroData[k].shift());
+      }
+
+      accChart.update('none');
+      gyroChart.update('none');
+
+      // 更新右侧当前值
+      const spans = currentValuesEl.querySelectorAll('span');
+      spans[0].textContent = 'AX: ' + ax;
+      spans[1].textContent = 'AY: ' + ay;
+      spans[2].textContent = 'AZ: ' + az;
+      spans[3].textContent = 'GX: ' + gx;
+      spans[4].textContent = 'GY: ' + gy;
+      spans[5].textContent = 'GZ: ' + gz;
+    }
+
+    // 解析一行：AX=.. AY=.. AZ=.. | GX=.. GY=.. GZ=..
+    const lineRegex = /AX=([-\d]+)\s+AY=([-\d]+)\s+AZ=([-\d]+)\s*\|\s*GX=([-\d]+)\s+GY=([-\d]+)\s+GZ=([-\d]+)/;
+
+    function handleLine(line) {
+      if (!line.trim()) return;
+      const m = line.match(lineRegex);
+      // 写到日志框
+      logEl.value += line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+
+      if (!m) return; // 格式不对就只当普通日志
+
+      const ax = parseInt(m[1], 10);
+      const ay = parseInt(m[2], 10);
+      const az = parseInt(m[3], 10);
+      const gx = parseInt(m[4], 10);
+      const gy = parseInt(m[5], 10);
+      const gz = parseInt(m[6], 10);
+
+      appendSample(ax, ay, az, gx, gy, gz);
+    }
+
+    // ==== 串口读循环 ====
+    async function readLoop() {
+      const textDecoder = new TextDecoderStream();
+      const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
+      reading = true;
+      let buffer = '';
+
+      statusEl.textContent = '状态：已连接，正在接收数据…';
+
+      try {
+        while (reading) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            buffer += value;
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop(); // 最后一行可能是半截
+            for (const l of lines) {
+              handleLine(l);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = '状态：读取出错：' + err;
+      } finally {
+        reading = false;
+        reader && reader.releaseLock();
+        await readableStreamClosed.catch(() => {});
+        statusEl.textContent = '状态：已断开';
+      }
+    }
+
+    // ==== 按钮事件 ====
+    connectBtn.addEventListener('click', async () => {
+      if (!('serial' in navigator)) {
+        alert('当前浏览器不支持 Web Serial API，请使用最新版 Chrome / Edge。');
+        return;
+      }
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate });
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        statusEl.textContent = '状态：串口已打开，等待数据…';
+        readLoop();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = '状态：打开串口失败：' + err;
+      }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+      disconnectBtn.disabled = true;
+      reading = false;
+      try {
+        if (reader) {
+          await reader.cancel();
+        }
+        if (port) {
+          await port.close();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        connectBtn.disabled = false;
+        statusEl.textContent = '状态：已手动断开';
+      }
+    });
+
+    window.addEventListener('beforeunload', async () => {
+      reading = false;
+      try {
+        reader && (await reader.cancel());
+        port && (await port.close());
+      } catch (e) {}
+    });
+  </script>
+</body>
+</html>

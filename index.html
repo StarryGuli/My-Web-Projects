@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的 HTML 应用仓库</title>
+    <style>
+        /* --- 样式部分保持不变 --- */
+        :root { --bg-color: #f5f5f7; --card-bg: #ffffff; --primary-color: #007aff; --text-main: #1d1d1f; --text-sub: #86868b; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; line-height: 1.6; }
+        .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+        header { text-align: center; margin-bottom: 50px; }
+        header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
+        header p { color: var(--text-sub); font-size: 1.2rem; }
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+        .app-card { background: var(--card-bg); border-radius: 16px; padding: 25px; text-decoration: none; color: inherit; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: flex-start; }
+        .app-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .app-icon { font-size: 3rem; margin-bottom: 15px; background: #f0f0f0; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+        .app-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
+        .app-desc { color: var(--text-sub); font-size: 0.95rem; }
+        footer { text-align: center; margin-top: 60px; color: var(--text-sub); font-size: 0.9rem; }
+        footer a { color: var(--primary-color); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <header>
+            <h1>我的代码实验室 🛠️</h1>
+            <p>嵌入式与姿态解算可视化展示</p>
+        </header>
+
+        <div class="app-grid">
+
+            <a href="mpu6050_viewer/" class="app-card">
+                <div class="app-icon">📊</div>
+                <div class="app-title">MPU6050 可视化</div>
+                <div class="app-desc">MPU6050 传感器的实时数据波形与姿态展示工具。</div>
+            </a>
+
+            <a href="quad_ahrs.html/" class="app-card">
+                <div class="app-icon">🚁</div>
+                <div class="app-title">四轴姿态解算 (AHRS)</div>
+                <div class="app-desc">四轴飞行器的姿态估计算法演示与仿真。</div>
+            </a>
+
+        </div>
+
+        <footer>
+            <p>© 2024 GitHub Pages | <a href="https://github.com/">访问 GitHub 仓库</a></p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

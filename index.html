@@ -20,7 +20,7 @@
             --icon-size-grid: 46px; 
             --icon-font-grid: 1.5rem;
             
-            /* List 模式图标 (极小) */
+            /* List 模式图标 */
             --icon-size-list: 24px;
             --icon-font-list: 0.85rem;
         }
@@ -122,8 +122,13 @@
             border-color: rgba(255,255,255,0.2);
         }
 
-        /* Search */
-        .search-wrapper { margin-bottom: 25px; max-width: 100%; }
+        /* --- Search (已修复定位问题) --- */
+        .search-wrapper { 
+            margin-bottom: 25px; 
+            max-width: 100%; 
+            position: relative; /* 关键修复：让内部的绝对定位图标以此为基准 */
+        }
+
         .search-input {
             width: 100%;
             padding: 14px 18px 14px 42px;
@@ -139,8 +144,18 @@
             outline: none;
             border-color: #a78bfa;
             background: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
         }
-        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 0.9rem;}
+        
+        .search-icon { 
+            position: absolute; 
+            left: 16px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            color: var(--text-sub); 
+            font-size: 0.9rem;
+            pointer-events: none; /* 防止遮挡输入点击 */
+        }
 
         /* --- Grid Layout System --- */
         .grid {
@@ -149,7 +164,7 @@
             transition: 0.3s;
         }
 
-        /* === Mode 1: Grid View (Default) === */
+        /* === Mode 1: Grid View === */
         .grid.view-grid {
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         }
@@ -167,14 +182,13 @@
             padding: 15px 24px;
         }
         .grid.view-grid .desc {
-            /* Grid 模式下多行显示简介 */
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        /* === Mode 2: List View (Compact & Detailed) === */
+        /* === Mode 2: List View (Full Width) === */
         .grid.view-list {
             grid-template-columns: 1fr;
             gap: 10px;
@@ -194,7 +208,6 @@
             gap: 15px;
             padding: 0;
             flex: 1;
-            /* 关键：防止 Flex 子元素溢出 */
             min-width: 0; 
         }
 
@@ -212,34 +225,32 @@
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 20px; /* 标题与简介的间距 */
-            min-width: 0; /* 允许子元素截断 */
+            gap: 20px;
+            min-width: 0;
         }
 
-        /* 列表模式下的标题：固定最小宽度，保证对齐 */
         .grid.view-list h3 { 
             margin: 0; 
             font-size: 0.9rem; 
             white-space: nowrap; 
-            min-width: 160px; /* 调整这个值来控制标题列的宽度 */
+            min-width: 160px; 
         }
         
-        /* 列表模式下的简介：填满剩余空间 */
         .grid.view-list p.desc { 
-            display: block; /* 显示简介 */
+            display: block;
             margin: 0;
             font-size: 0.85rem;
-            color: rgba(148, 163, 184, 0.6); /* 颜色淡一点 */
-            white-space: nowrap; /* 单行 */
+            color: rgba(148, 163, 184, 0.6);
+            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis; /* 超出显示省略号 */
-            flex: 1; /* 占据中间所有空白 */
+            text-overflow: ellipsis;
+            flex: 1;
         }
 
         .grid.view-list .tags {
             margin-top: 0;
             gap: 6px;
-            flex-shrink: 0; /* 防止标签被压缩 */
+            flex-shrink: 0;
         }
         .grid.view-list .tag { padding: 1px 6px; font-size: 0.65rem; border-radius: 4px; }
 
@@ -255,12 +266,11 @@
         .grid.view-list .btn-text i { font-size: 0.9rem; color: var(--text-sub); }
         .grid.view-list .btn-text:hover i { color: #fff; }
         
-        /* Mobile Adapt */
         @media (max-width: 768px) {
             .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; }
-            .grid.view-list p.desc { display: none; } /* 手机屏太窄，隐藏简介保持清爽 */
+            .grid.view-list p.desc { display: none; }
             .grid.view-list h3 { min-width: auto; }
-            .grid.view-list .card-actions { display: none; } /* 手机隐藏按钮，点击卡片即可 */
+            .grid.view-list .card-actions { display: none; }
         }
 
         /* --- Card Common --- */

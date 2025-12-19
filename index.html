@@ -3,137 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dev.Lab | 个人开发仓库</title>
+    <title>Dev.Lab | Repository</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* --- 核心变量 --- */
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-cyan: #06b6d4;
-            --accent-purple: #8b5cf6;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
+            --bg-color: #0b1121;
+            --card-bg: #151e32;
+            --card-hover: #1e293b;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8; /* 科技蓝 */
+            --border: rgba(255,255,255,0.08);
         }
 
         body {
-            font-family: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
             background-color: var(--bg-color);
-            background-image: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.1) 0%, transparent 40%),
-                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
-            color: var(--text-primary);
+            color: var(--text-main);
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 24px;
+            padding: 40px 20px;
         }
 
-        /* --- 顶部导航栏 --- */
-        .navbar {
+        /* --- 顶部 Header --- */
+        .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
+            align-items: flex-start;
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
             flex-wrap: wrap;
             gap: 20px;
         }
 
-        .brand h1 {
-            font-size: 1.8rem;
+        .title-group h1 {
             margin: 0;
+            font-size: 2rem;
             background: linear-gradient(90deg, #fff, #94a3b8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 700;
-            letter-spacing: -1px;
         }
 
-        .brand .terminal-text {
-            color: var(--accent-cyan);
-            font-size: 0.9rem;
-            margin-top: 5px;
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-top: 10px;
+            align-items: center;
         }
 
-        /* --- GitHub 按钮样式 --- */
-        .github-btn {
+        .status-item {
             display: flex;
             align-items: center;
-            background: #24292e;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s;
-            height: 36px;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 10px;
+            border-radius: 4px;
         }
 
-        .github-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
         }
+        @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
 
-        .gh-icon {
-            padding: 0 12px;
-            background: #333;
-            height: 100%;
+        /* --- 语言切换开关 --- */
+        .lang-switch {
+            cursor: pointer;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            transition: 0.3s;
             display: flex;
             align-items: center;
-            font-weight: 600;
-            gap: 8px;
+            gap: 6px;
         }
-
-        .gh-count {
-            padding: 0 12px;
-            background: #fafbfc;
-            color: #24292e;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-            border-left: 1px solid #d1d5da;
+        .lang-switch:hover {
+            color: var(--text-main);
+            border-color: var(--accent);
         }
 
         /* --- 搜索框 --- */
-        .search-wrapper {
+        .search-box {
             position: relative;
-            margin-bottom: 40px;
-            max-width: 600px;
+            margin-bottom: 30px;
         }
-
         .search-input {
             width: 100%;
-            padding: 15px 20px 15px 45px;
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 12px;
+            padding: 15px 45px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             color: white;
             font-family: inherit;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s;
-            box-sizing: border-box; /* 关键：防止padding撑破宽度 */
+            box-sizing: border-box;
+            transition: 0.3s;
         }
-
         .search-input:focus {
-            border-color: var(--accent-cyan);
-            background: rgba(30, 41, 59, 0.9);
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
         }
-
         .search-icon {
             position: absolute;
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-secondary);
+            color: var(--text-sub);
         }
 
         /* --- 网格布局 --- */
@@ -143,110 +139,95 @@
             gap: 20px;
         }
 
+        /* --- 卡片设计 --- */
         .card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 20px;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-        }
-
-        /* 搜索过滤时的隐藏样式 */
-        .card.hidden {
-            display: none;
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
         }
 
         .card:hover {
             transform: translateY(-4px);
-            border-color: rgba(6, 182, 212, 0.3);
-            box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
-        /* 类型颜色定义 */
-        .card.type-data:hover { border-color: var(--accent-cyan); box-shadow: 0 0 30px rgba(6, 182, 212, 0.15); }
-        .card.type-ui:hover { border-color: var(--accent-purple); box-shadow: 0 0 30px rgba(139, 92, 246, 0.15); }
-        .card.type-algo:hover { border-color: var(--accent-green); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15); }
-        .card.type-doc:hover { border-color: var(--accent-orange); box-shadow: 0 0 30px rgba(245, 158, 11, 0.15); }
+        /* 卡片主体点击区域 (跳转 Demo) */
+        .card-main {
+            padding: 20px;
+            flex-grow: 1;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
 
-        .card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        .card-icon {
+            font-size: 2rem;
             margin-bottom: 15px;
-        }
-
-        .icon-box {
-            width: 44px;
-            height: 44px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-        }
-
-        .arrow-icon {
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            transition: transform 0.3s ease;
-        }
-        
-        .card:hover .arrow-icon {
-            color: var(--text-primary);
-            transform: translate(4px, -4px);
+            display: inline-block;
         }
 
         .card h2 {
-            margin: 0 0 8px 0;
             font-size: 1.1rem;
-            color: var(--text-primary);
-            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--text-main);
         }
 
         .card p {
+            font-size: 0.85rem;
+            color: var(--text-sub);
             margin: 0;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
             line-height: 1.5;
+            min-height: 2.5em;
         }
 
-        .tags {
-            margin-top: 15px;
+        /* 卡片底部操作栏 */
+        .card-footer {
+            border-top: 1px solid var(--border);
             display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+            background: rgba(0,0,0,0.2);
         }
 
-        .tag {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-secondary);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        footer {
-            margin-top: 60px;
+        .footer-btn {
+            flex: 1;
+            padding: 10px;
             text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
-            padding-top: 30px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            color: var(--text-sub);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
         
-        footer a { color: var(--accent-cyan); text-decoration: none;}
+        .footer-btn:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-main);
+        }
+
+        .footer-btn.code-link {
+            border-left: 1px solid var(--border);
+        }
+        
+        .footer-btn:hover i { color: var(--accent); }
+
+        /* 标签 */
+        .tags { margin-top: 15px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--text-sub); }
+
+        /* 隐藏类 (搜索用) */
+        .hidden { display: none !important; }
 
         @media (max-width: 600px) {
-            .navbar { flex-direction: column; align-items: flex-start; }
-            .github-btn { width: 100%; justify-content: center; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .status-bar { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -254,185 +235,330 @@
 
     <div class="container">
         
-        <nav class="navbar">
-            <div class="brand">
-                <h1>MY LAB REPOSITORY</h1>
-                <div class="terminal-text">> root@github:~/projects_v2.0 $ <span id="cursor">_</span></div>
+        <header class="header">
+            <div class="title-group">
+                <h1>DEV.LAB_</h1>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="live-dot"></div>
+                        <span data-zh="系统在线" data-en="System Online">系统在线</span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fab fa-github"></i>
+                        <span id="star-display">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-layer-group"></i>
+                        <span>16 Projects</span>
+                    </div>
+                </div>
             </div>
 
-            <a href="https://github.com/你的用户名/你的仓库名" target="_blank" class="github-btn" id="repo-link">
-                <div class="gh-icon"><i class="fab fa-github"></i> Star</div>
-                <div class="gh-count" id="star-count">...</div>
-            </a>
-        </nav>
+            <div class="lang-switch" onclick="toggleLanguage()">
+                <i class="fas fa-globe"></i>
+                <span id="lang-text">EN / 中文</span>
+            </div>
+        </header>
 
-        <div class="search-wrapper">
+        <div class="search-box">
             <i class="fas fa-search search-icon"></i>
-            <input type="text" id="searchInput" class="search-input" placeholder="输入关键字搜索项目 (例如: imu, lidar, 坦克)...">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search projects / 搜索项目...">
         </div>
 
-        <div class="grid" id="cardGrid">
-
-            <a href="CyberHand/" class="card type-algo">
-                <div class="card-top"><div class="icon-box">🦾</div><div class="arrow-icon">↗</div></div>
-                <h2>CyberHand</h2>
-                <p>赛博机械手控制与状态可视化。</p>
-                <div class="tags"><span class="tag">Robotics</span></div>
-            </a>
-
-            <a href="Holographic Workbench/" class="card type-ui">
-                <div class="card-top"><div class="icon-box">💠</div><div class="arrow-icon">↗</div></div>
-                <h2>Holographic Workbench</h2>
-                <p>全息工作台概念 UI 演示。</p>
-                <div class="tags"><span class="tag">3D UI</span></div>
-            </a>
-
-            <a href="IMU Dashboard V4/" class="card type-data">
-                <div class="card-top"><div class="icon-box">🧭</div><div class="arrow-icon">↗</div></div>
-                <h2>IMU Dashboard V4</h2>
-                <p>第四代惯性导航仪表盘。</p>
-                <div class="tags"><span class="tag">WebSerial</span></div>
-            </a>
-
-            <a href="IMU 姿态可视化 - 二战坦克版/" class="card type-data">
-                <div class="card-top"><div class="icon-box">🚜</div><div class="arrow-icon">↗</div></div>
-                <h2>IMU 姿态可视化</h2>
-                <p>二战坦克模型的姿态实时跟随。</p>
-                <div class="tags"><span class="tag">3D Model</span></div>
-            </a>
-
-            <a href="Interactive Lidar App/" class="card type-data">
-                <div class="card-top"><div class="icon-box">📡</div><div class="arrow-icon">↗</div></div>
-                <h2>Interactive Lidar</h2>
-                <p>激光雷达点云交互应用。</p>
-                <div class="tags"><span class="tag">Lidar</span></div>
-            </a>
-
-            <a href="mpu6050_viewer/" class="card type-data">
-                <div class="card-top"><div class="icon-box">📉</div><div class="arrow-icon">↗</div></div>
-                <h2>MPU6050 Viewer</h2>
-                <p>6轴传感器波形与姿态解算。</p>
-                <div class="tags"><span class="tag">Sensor</span></div>
-            </a>
-
-            <a href="NEO-INTERFACE HUD/" class="card type-ui">
-                <div class="card-top"><div class="icon-box">👁️</div><div class="arrow-icon">↗</div></div>
-                <h2>NEO-INTERFACE HUD</h2>
-                <p>科幻风格抬头显示组件。</p>
-                <div class="tags"><span class="tag">Cyberpunk</span></div>
-            </a>
-
-            <a href="PID数据画图_三个数值_2_0/" class="card type-data">
-                <div class="card-top"><div class="icon-box">📈</div><div class="arrow-icon">↗</div></div>
-                <h2>PID Data Plotter</h2>
-                <p>三通道 PID 实时数据波形绘制。</p>
-                <div class="tags"><span class="tag">Control</span></div>
-            </a>
-
-            <a href="quad_ahrs.html/" class="card type-algo">
-                <div class="card-top"><div class="icon-box">🚁</div><div class="arrow-icon">↗</div></div>
-                <h2>Quad AHRS</h2>
-                <p>四轴飞行器姿态参考系统仿真。</p>
-                <div class="tags"><span class="tag">Flight</span></div>
-            </a>
-
-            <a href="ray-casting-simulator/" class="card type-algo">
-                <div class="card-top"><div class="icon-box">🔦</div><div class="arrow-icon">↗</div></div>
-                <h2>Ray Casting Sim</h2>
-                <p>光线投射与视野算法模拟。</p>
-                <div class="tags"><span class="tag">Algorithm</span></div>
-            </a>
-
-            <a href="Web Audio 频谱分析仪/" class="card type-data">
-                <div class="card-top"><div class="icon-box">🎵</div><div class="arrow-icon">↗</div></div>
-                <h2>Audio Spectrum</h2>
-                <p>Web Audio 实时音频频谱分析。</p>
-                <div class="tags"><span class="tag">DSP</span></div>
-            </a>
-
-            <a href="串口数据画图_两个传感器_1_0/" class="card type-data">
-                <div class="card-top"><div class="icon-box">🔌</div><div class="arrow-icon">↗</div></div>
-                <h2>Serial Plotter</h2>
-                <p>双传感器串口数据实时绘图。</p>
-                <div class="tags"><span class="tag">Serial</span></div>
-            </a>
+        <div class="grid" id="projectGrid">
             
-            <a href="mindmap/" class="card type-doc">
-                <div class="card-top"><div class="icon-box">🧠</div><div class="arrow-icon">↗</div></div>
-                <h2>Mindmap</h2>
-                <p>思维导图项目 v1.0。</p>
-                <div class="tags"><span class="tag">Doc</span></div>
-            </a>
+            <div class="card" data-folder="CyberHand">
+                <a href="CyberHand/" class="card-main">
+                    <div class="card-icon">🦾</div>
+                    <h2 data-zh="CyberHand 机械手" data-en="CyberHand Control">CyberHand 机械手</h2>
+                    <p data-zh="赛博机械手控制与状态可视化界面，包含舵机逻辑。" data-en="Robotic hand control interface with servo logic visualization.">赛博机械手控制与状态可视化界面...</p>
+                    <div class="tags"><span class="tag">Robotics</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="CyberHand/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
 
-            <a href="mindmap_2/" class="card type-doc">
-                <div class="card-top"><div class="icon-box">💡</div><div class="arrow-icon">↗</div></div>
-                <h2>Mindmap 2</h2>
-                <p>思维导图项目 v2.0。</p>
-                <div class="tags"><span class="tag">Doc</span></div>
-            </a>
+            <div class="card" data-folder="Holographic Workbench">
+                <a href="Holographic Workbench/" class="card-main">
+                    <div class="card-icon">💠</div>
+                    <h2 data-zh="全息工作台" data-en="Holographic UI">全息工作台</h2>
+                    <p data-zh="未来风格的全息工作台概念验证，探索空间UI交互。" data-en="Futuristic holographic workbench concept exploring spatial UI.">未来风格的全息工作台概念验证...</p>
+                    <div class="tags"><span class="tag">3D UI</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="Holographic Workbench/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
 
-            <a href="GlobalEdu Strategy/" class="card type-doc">
-                <div class="card-top"><div class="icon-box">🎓</div><div class="arrow-icon">↗</div></div>
-                <h2>GlobalEdu Strategy</h2>
-                <p>全球教育策略相关文档/页面。</p>
-                <div class="tags"><span class="tag">Strategy</span></div>
-            </a>
+            <div class="card" data-folder="IMU Dashboard V4">
+                <a href="IMU Dashboard V4/" class="card-main">
+                    <div class="card-icon">🧭</div>
+                    <h2 data-zh="IMU 仪表盘 V4" data-en="IMU Dashboard V4">IMU 仪表盘 V4</h2>
+                    <p data-zh="第四代惯性导航系统仪表盘，优化数据流处理。" data-en="4th Gen Inertial Navigation System dashboard.">第四代惯性导航系统仪表盘...</p>
+                    <div class="tags"><span class="tag">WebSerial</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="IMU Dashboard V4/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
 
-            <a href="global_relationships_report/" class="card type-doc">
-                <div class="card-top"><div class="icon-box">🌍</div><div class="arrow-icon">↗</div></div>
-                <h2>Global Relations</h2>
-                <p>全球关系报告展示。</p>
-                <div class="tags"><span class="tag">Report</span></div>
-            </a>
+            <div class="card" data-folder="IMU 姿态可视化 - 二战坦克版">
+                <a href="IMU 姿态可视化 - 二战坦克版/" class="card-main">
+                    <div class="card-icon">🚜</div>
+                    <h2 data-zh="IMU 坦克姿态" data-en="Tank Attitude Vis">IMU 坦克姿态</h2>
+                    <p data-zh="二战坦克模型的姿态实时跟随展示。" data-en="Real-time attitude tracking with a WW2 tank model.">二战坦克模型的姿态实时跟随展示。</p>
+                    <div class="tags"><span class="tag">3D Model</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="IMU 姿态可视化 - 二战坦克版/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="Interactive Lidar App">
+                <a href="Interactive Lidar App/" class="card-main">
+                    <div class="card-icon">📡</div>
+                    <h2 data-zh="Lidar 交互应用" data-en="Interactive Lidar">Lidar 交互应用</h2>
+                    <p data-zh="交互式激光雷达点云数据展示与分析。" data-en="Interactive LiDAR point cloud data visualization.">交互式激光雷达点云数据展示...</p>
+                    <div class="tags"><span class="tag">Point Cloud</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="Interactive Lidar App/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="mpu6050_viewer">
+                <a href="mpu6050_viewer/" class="card-main">
+                    <div class="card-icon">📉</div>
+                    <h2 data-zh="MPU6050 可视化" data-en="MPU6050 Viewer">MPU6050 可视化</h2>
+                    <p data-zh="经典的六轴传感器波形显示与姿态解算。" data-en="Classic 6-axis sensor waveform and attitude calculation.">经典的六轴传感器波形显示...</p>
+                    <div class="tags"><span class="tag">Sensor</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="mpu6050_viewer/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="NEO-INTERFACE HUD">
+                <a href="NEO-INTERFACE HUD/" class="card-main">
+                    <div class="card-icon">👁️</div>
+                    <h2 data-zh="NEO 科幻 HUD" data-en="NEO HUD Interface">NEO 科幻 HUD</h2>
+                    <p data-zh="科幻风格的抬头显示 (HUD) 界面组件库。" data-en="Sci-fi style Head-Up Display (HUD) component library.">科幻风格的抬头显示界面...</p>
+                    <div class="tags"><span class="tag">Cyberpunk</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="NEO-INTERFACE HUD/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="PID数据画图_三个数值_2_0">
+                <a href="PID数据画图_三个数值_2_0/" class="card-main">
+                    <div class="card-icon">📈</div>
+                    <h2 data-zh="PID 数据绘图" data-en="PID Data Plotter">PID 数据绘图</h2>
+                    <p data-zh="三通道 PID 实时数据波形绘制工具。" data-en="3-channel PID real-time data waveform plotter.">三通道 PID 实时数据波形绘制...</p>
+                    <div class="tags"><span class="tag">Control</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="PID数据画图_三个数值_2_0/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="quad_ahrs.html">
+                <a href="quad_ahrs.html/" class="card-main">
+                    <div class="card-icon">🚁</div>
+                    <h2 data-zh="四轴 AHRS 仿真" data-en="Quad AHRS Sim">四轴 AHRS 仿真</h2>
+                    <p data-zh="四轴飞行器姿态参考系统解算仿真。" data-en="Quad-copter Attitude and Heading Reference System sim.">四轴飞行器姿态参考系统解算...</p>
+                    <div class="tags"><span class="tag">Flight</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="quad_ahrs.html/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="ray-casting-simulator">
+                <a href="ray-casting-simulator/" class="card-main">
+                    <div class="card-icon">🔦</div>
+                    <h2 data-zh="光线投射模拟" data-en="Ray Casting Sim">光线投射模拟</h2>
+                    <p data-zh="2D 光线投射算法仿真，模拟视野与阴影。" data-en="2D Ray Casting algorithm simulation for POV and shadows.">2D 光线投射算法仿真...</p>
+                    <div class="tags"><span class="tag">Algorithm</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="ray-casting-simulator/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="Web Audio 频谱分析仪">
+                <a href="Web Audio 频谱分析仪/" class="card-main">
+                    <div class="card-icon">🎵</div>
+                    <h2 data-zh="音频频谱分析" data-en="Audio Spectrum">音频频谱分析</h2>
+                    <p data-zh="Web Audio API 实时音频频谱分析仪。" data-en="Real-time audio spectrum analyzer using Web Audio API.">Web Audio API 实时音频频谱...</p>
+                    <div class="tags"><span class="tag">DSP</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="Web Audio 频谱分析仪/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="串口数据画图_两个传感器_1_0">
+                <a href="串口数据画图_两个传感器_1_0/" class="card-main">
+                    <div class="card-icon">🔌</div>
+                    <h2 data-zh="串口双路绘图" data-en="Dual Serial Plotter">串口双路绘图</h2>
+                    <p data-zh="双传感器串口数据实时绘图工具。" data-en="Real-time plotting tool for dual sensor serial data.">双传感器串口数据实时绘图...</p>
+                    <div class="tags"><span class="tag">Serial</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="串口数据画图_两个传感器_1_0/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="mindmap">
+                <a href="mindmap/" class="card-main">
+                    <div class="card-icon">🧠</div>
+                    <h2 data-zh="思维导图 V1" data-en="Mindmap V1">思维导图 V1</h2>
+                    <p data-zh="思维导图项目 v1.0 版本。" data-en="Mind mapping project version 1.0.">思维导图项目 v1.0...</p>
+                    <div class="tags"><span class="tag">Doc</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="mindmap/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="mindmap_2">
+                <a href="mindmap_2/" class="card-main">
+                    <div class="card-icon">💡</div>
+                    <h2 data-zh="思维导图 V2" data-en="Mindmap V2">思维导图 V2</h2>
+                    <p data-zh="思维导图项目 v2.0 版本，功能升级。" data-en="Mind mapping project version 2.0 with upgrades.">思维导图项目 v2.0 版本...</p>
+                    <div class="tags"><span class="tag">Doc</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="mindmap_2/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="GlobalEdu Strategy">
+                <a href="GlobalEdu Strategy/" class="card-main">
+                    <div class="card-icon">🎓</div>
+                    <h2 data-zh="教育策略文档" data-en="Edu Strategy">教育策略文档</h2>
+                    <p data-zh="全球教育策略相关展示页面。" data-en="Display page for Global Education Strategy.">全球教育策略相关展示页面...</p>
+                    <div class="tags"><span class="tag">Strategy</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="GlobalEdu Strategy/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
+
+            <div class="card" data-folder="global_relationships_report">
+                <a href="global_relationships_report/" class="card-main">
+                    <div class="card-icon">🌍</div>
+                    <h2 data-zh="全球关系报告" data-en="Global Report">全球关系报告</h2>
+                    <p data-zh="全球关系报告可视化展示。" data-en="Visualization for Global Relationships Report.">全球关系报告可视化展示...</p>
+                    <div class="tags"><span class="tag">Report</span></div>
+                </a>
+                <div class="card-footer">
+                    <a href="global_relationships_report/" class="footer-btn"><i class="fas fa-play"></i> <span data-zh="运行" data-en="Demo">运行</span></a>
+                    <a href="#" class="footer-btn code-link" target="_blank"><i class="fab fa-github"></i> <span data-zh="源码" data-en="Code">源码</span></a>
+                </div>
+            </div>
 
         </div>
 
         <footer>
-            <p>© 2025 Lab Repository. Built with <i class="fas fa-heart" style="color:var(--accent-purple)"></i> & HTML5.</p>
+            <p style="color:var(--text-sub); font-size:0.8rem; margin-top:50px; text-align:center;">
+                &copy; 2025 DEV.LAB | Powered by GitHub Pages
+            </p>
         </footer>
 
     </div>
 
     <script>
         // ============================================
-        // ⚠️ 配置区域：请修改这里！
+        // ⚠️ 配置区域：必须修改这里才能跳转源码！
         // ============================================
-        const GITHUB_USERNAME = "你的用户名";  // 例如: tom
-        const GITHUB_REPO = "你的仓库名";      // 例如: html-apps
+        const CONFIG = {
+            username: "starryguli",  // 例如: "tom"
+            repo: "My-Web-Projects",            // 例如: "my-web-projects"
+            branch: "main"                // 如果你的主分支叫 master，请改成 master
+        };
         // ============================================
 
-        // 1. 设置 GitHub 链接
-        const repoUrl = `https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}`;
-        document.getElementById('repo-link').href = repoUrl;
+        // 1. 初始化 Star 计数器
+        async function fetchStars() {
+            const starEl = document.getElementById('star-display');
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.username}/${CONFIG.repo}`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+                starEl.innerHTML = `${data.stargazers_count} Stars`;
+            } catch (e) {
+                console.log(e);
+                starEl.innerHTML = `Unknown Status`; // API 失败时显示
+            }
+        }
+        fetchStars();
 
-        // 2. 获取 Star 数量 (调用 GitHub API)
-        fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}`)
-            .then(response => {
-                if(response.ok) return response.json();
-                throw new Error('Network response was not ok');
-            })
-            .then(data => {
-                document.getElementById('star-count').innerText = data.stargazers_count;
-            })
-            .catch(error => {
-                console.log('GitHub API Limit or Error', error);
-                document.getElementById('star-count').innerText = "-";
-            });
-
-        // 3. 搜索功能逻辑
-        const searchInput = document.getElementById('searchInput');
-        const cards = document.querySelectorAll('.card');
-
-        searchInput.addEventListener('keyup', (e) => {
-            const term = e.target.value.toLowerCase();
-
+        // 2. 自动生成 GitHub 源码链接
+        function initCodeLinks() {
+            const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
-                const title = card.querySelector('h2').textContent.toLowerCase();
-                const desc = card.querySelector('p').textContent.toLowerCase();
-                const tags = card.querySelector('.tags').textContent.toLowerCase();
+                const folderName = card.getAttribute('data-folder');
+                // URL 格式: https://github.com/用户名/仓库名/tree/main/文件夹名
+                const codeUrl = `https://github.com/${CONFIG.username}/${CONFIG.repo}/tree/${CONFIG.branch}/${encodeURIComponent(folderName)}`;
                 
-                // 只要标题、简介或标签中包含搜索词，就显示
-                if(title.includes(term) || desc.includes(term) || tags.includes(term)) {
+                const codeBtn = card.querySelector('.code-link');
+                if(codeBtn) {
+                    codeBtn.href = codeUrl;
+                }
+            });
+        }
+        initCodeLinks();
+
+        // 3. 语言切换逻辑
+        let currentLang = 'zh'; // 默认中文
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateContent();
+        }
+
+        function updateContent() {
+            // 更新卡片内容
+            document.querySelectorAll('[data-zh]').forEach(el => {
+                el.textContent = el.getAttribute(`data-${currentLang}`);
+            });
+            
+            // 更新搜索框 placeholder
+            const searchInput = document.getElementById('searchInput');
+            if(currentLang === 'en') {
+                searchInput.placeholder = "Type to search projects...";
+            } else {
+                searchInput.placeholder = "输入关键字搜索项目...";
+            }
+        }
+        
+        // 4. 搜索功能
+        document.getElementById('searchInput').addEventListener('keyup', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.card').forEach(card => {
+                // 搜索时同时匹配中文和英文内容
+                const zhText = card.querySelector('h2').getAttribute('data-zh').toLowerCase();
+                const enText = card.querySelector('h2').getAttribute('data-en').toLowerCase();
+                
+                if(zhText.includes(term) || enText.includes(term)) {
                     card.classList.remove('hidden');
                 } else {
                     card.classList.add('hidden');
@@ -440,12 +566,6 @@
             });
         });
 
-        // 光标闪烁动画
-        setInterval(() => {
-            const cursor = document.getElementById('cursor');
-            cursor.style.opacity = cursor.style.opacity === '0' ? '1' : '0';
-        }, 800);
     </script>
-
 </body>
 </html>

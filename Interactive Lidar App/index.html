@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8线 Lidar + IMU 融合定位</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #2196f3; /* 蓝色代表 IMU 融合 */
+            --border: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        
+        #container { display: flex; flex-direction: row; width: 100%; height: 100%; }
+        #canvas-wrapper {
+            flex: 1; position: relative; background-color: #000;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+            cursor: crosshair;
+        }
+        canvas { box-shadow: 0 0 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        
+        #overlay-tip {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7); padding: 8px 16px; border-radius: 20px;
+            pointer-events: none; font-size: 14px; color: #aaa;
+        }
+
+        #sidebar {
+            width: 450px; background-color: var(--panel); border-left: 1px solid var(--border);
+            padding: 20px; display: flex; flex-direction: column; overflow-y: auto;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+        }
+
+        h2 { margin-top: 0; font-size: 18px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .control-group { margin-bottom: 20px; background: #252526; padding: 15px; border-radius: 8px; }
+        label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .data-item { background: #2a2a2a; padding: 10px; border-radius: 6px; }
+        .data-label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; }
+        .data-value { font-size: 16px; font-family: monospace; font-weight: bold; }
+        
+        /* 代码展示样式优化 */
+        pre { 
+            background: #111; 
+            padding: 15px; 
+            border-radius: 6px; 
+            border: 1px solid var(--border); 
+            font-size: 12px; 
+            color: #dcdcdc; 
+            overflow: auto; 
+            white-space: pre;
+            font-family: 'Consolas', 'Monaco', monospace;
+            height: 400px; /* 增加高度以容纳更多代码 */
+        }
+        .code-comment { color: #6a9955; }
+        .code-type { color: #4ec9b0; }
+        .code-keyword { color: #569cd6; }
+        .code-num { color: #b5cea8; }
+        .code-str { color: #ce9178; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="canvas-wrapper">
+        <canvas id="simCanvas" width="800" height="800"></canvas>
+        <div id="overlay-tip">拖动移动 • 蓝色箭头为IMU方向</div>
+    </div>
+
+    <div id="sidebar">
+        <h2>IMU + Lidar 融合算法</h2>
+
+        <div class="control-group">
+            <label>
+                <span>车身旋转 (Rotation)</span>
+                <span id="rotVal">0°</span>
+            </label>
+            <input type="range" id="rotSlider" min="0" max="360" value="0">
+        </div>
+
+        <h3>数据面板</h3>
+        <div class="data-grid">
+            <div class="data-item">
+                <span class="data-label">真实位置 (True)</span>
+                <span class="data-value" id="truePos" style="color:#888">0, 0</span>
+            </div>
+            <div class="data-item">
+                <span class="data-label">融合解算 (Fused)</span>
+                <span class="data-value" id="calcPos" style="color:var(--accent)">0, 0</span>
+            </div>
+            <div class="data-item">
+                <span class="data-label">IMU 读数 (含噪声)</span>
+                <span class="data-value" id="imuRead">0°</span>
+            </div>
+             <div class="data-item">
+                <span class="data-label">Lidar 精修角度</span>
+                <span class="data-value" id="lidarFit">0°</span>
+            </div>
+        </div>
+
+        <h3>核心 C 语言实现</h3>
+        <p style="font-size:12px; color:#aaa; margin-bottom: 5px;">
+            下方展示了 `lidar_fusion.c` 中的核心融合函数：
+        </p>
+        <pre>
+<span class="code-type">typedef struct</span> {
+    <span class="code-type">double</span> x, y;
+    <span class="code-type">int</span> valid_votes_x, valid_votes_y;
+    <span class="code-type">double</span> fit_heading;
+} <span class="code-type">PoseResult</span>;
+
+<span class="code-type">PoseResult</span> solve_fused_position(<span class="code-type">double</span> rays[], <span class="code-type">double</span> imu_deg) {
+    <span class="code-type">double</span> imu_rad = deg_to_rad(imu_deg);
+    <span class="code-type">double</span> delta = deg_to_rad(<span class="code-num">45.0</span>); 
+    <span class="code-type">double</span> sum_x = <span class="code-num">0</span>, sum_y = <span class="code-num">0</span>;
+    <span class="code-type">int</span> count_x = <span class="code-num">0</span>, count_y = <span class="code-num">0</span>;
+
+    <span class="code-comment">// 遍历所有相邻线对 (0-1, 1-2, ..., 7-0)</span>
+    <span class="code-keyword">for</span> (<span class="code-type">int</span> i = <span class="code-num">0</span>; i &lt; <span class="code-num">8</span>; i++) {
+        <span class="code-type">double</span> r1 = rays[i];
+        <span class="code-type">double</span> r2 = rays[(i + <span class="code-num">1</span>) % <span class="code-num">8</span>];
+
+        <span class="code-comment">// --- 第一步：Lidar 两点几何拟合 ---</span>
+        <span class="code-type">double</span> num = r2 * cos(delta) - r1;
+        <span class="code-type">double</span> den = r2 * sin(delta);
+        <span class="code-type">double</span> alpha = atan2(num, den);
+        <span class="code-type">double</span> dist = r1 * cos(alpha);
+
+        <span class="code-comment">// 过滤无效距离</span>
+        <span class="code-keyword">if</span> (dist &lt; <span class="code-num">0</span> || dist &gt; MAP_SIZE * <span class="code-num">1.2</span>) <span class="code-keyword">continue</span>;
+
+        <span class="code-comment">// --- 第二步：计算全局法线角度 ---</span>
+        <span class="code-type">double</span> ray_global_ang = imu_rad + deg_to_rad(i * <span class="code-num">45</span>);
+        <span class="code-type">double</span> normal_global_ang = normalize(ray_global_ang - alpha);
+
+        <span class="code-comment">// --- 第三步：IMU 判向 ---</span>
+        <span class="code-comment">// 找到最近的基准方向 (0, 90, 180, 270)</span>
+        <span class="code-type">double</span> step = PI / <span class="code-num">2.0</span>;
+        <span class="code-type">int</span> card_idx = (<span class="code-type">int</span>)round(normal_global_ang / step);
+        <span class="code-type">double</span> cardinal_dir = card_idx * step;
+
+        <span class="code-comment">// 检查偏差是否过大 (>30度)</span>
+        <span class="code-keyword">if</span> (fabs(normal_global_ang - cardinal_dir) &gt; deg_to_rad(<span class="code-num">30.0</span>)) 
+            <span class="code-keyword">continue</span>;
+
+        <span class="code-type">int</span> dir_type = card_idx & <span class="code-num">3</span>; 
+
+        <span class="code-comment">// --- 第四步：坐标融合 ---</span>
+        <span class="code-keyword">if</span> (dir_type == <span class="code-num">0</span>) {       <span class="code-comment">// 法线朝东 -> 右墙</span>
+            sum_x += (MAP_SIZE - dist); count_x++;
+        } <span class="code-keyword">else if</span> (dir_type == <span class="code-num">1</span>) { <span class="code-comment">// 法线朝北 -> 上墙</span>
+            sum_y += (MAP_SIZE - dist); count_y++;
+        } <span class="code-keyword">else if</span> (dir_type == <span class="code-num">2</span>) { <span class="code-comment">// 法线朝西 -> 左墙</span>
+            sum_x += dist; count_x++;
+        } <span class="code-keyword">else if</span> (dir_type == <span class="code-num">3</span>) { <span class="code-comment">// 法线朝南 -> 下墙</span>
+            sum_y += dist; count_y++;
+        }
+    }
+
+    <span class="code-type">PoseResult</span> res = {<span class="code-num">0</span>};
+    <span class="code-keyword">if</span> (count_x &gt; <span class="code-num">0</span>) res.x = sum_x / count_x;
+    <span class="code-keyword">if</span> (count_y &gt; <span class="code-num">0</span>) res.y = sum_y / count_y;
+    <span class="code-keyword">return</span> res;
+}</pre>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 配置
+    const MAP_SIZE = 500;
+    const RAY_COUNT = 8;
+    const ANGLE_STEP = 360 / RAY_COUNT; // 45度
+    let offsetX = 0, offsetY = 0;
+    
+    let player = { x: 250, y: 250, rotation: 0 };
+    let imuNoiseOffset = 0; // 模拟噪声
+    let isDragging = false;
+
+    // UI Elements
+    const elTruePos = document.getElementById('truePos');
+    const elCalcPos = document.getElementById('calcPos');
+    const elImuRead = document.getElementById('imuRead');
+    const elLidarFit = document.getElementById('lidarFit');
+    const rotSlider = document.getElementById('rotSlider');
+    const rotVal = document.getElementById('rotVal');
+
+    function resize() {
+        const wrapper = document.getElementById('canvas-wrapper');
+        canvas.width = wrapper.clientWidth;
+        canvas.height = wrapper.clientHeight;
+        offsetX = (canvas.width - MAP_SIZE) / 2;
+        offsetY = (canvas.height - MAP_SIZE) / 2;
+        draw();
+    }
+    window.addEventListener('resize', resize);
+    function degToRad(deg) { return deg * Math.PI / 180; }
+    function radToDeg(rad) { return rad * 180 / Math.PI; }
+
+    // --------------------------------------------------------
+    // 物理引擎
+    // --------------------------------------------------------
+    function scanEnvironment(px, py, rotDeg) {
+        let rays = [];
+        let rotRad = degToRad(rotDeg);
+        for (let i = 0; i < RAY_COUNT; i++) {
+            let globalAngle = rotRad + degToRad(i * ANGLE_STEP);
+            let dx = Math.cos(globalAngle);
+            let dy = Math.sin(globalAngle);
+            let dist = Infinity;
+            
+            // Raycasting logic
+            if (Math.abs(dx) > 1e-6) {
+                let tx = dx > 0 ? MAP_SIZE - px : -px;
+                let d = tx / dx;
+                let yAt = py + d * dy;
+                if (d > 0 && yAt >= -0.01 && yAt <= MAP_SIZE + 0.01) dist = Math.min(dist, d);
+            }
+            if (Math.abs(dy) > 1e-6) {
+                let ty = dy > 0 ? MAP_SIZE - py : -py;
+                let d = ty / dy;
+                let xAt = px + d * dx;
+                if (d > 0 && xAt >= -0.01 && xAt <= MAP_SIZE + 0.01) dist = Math.min(dist, d);
+            }
+            rays.push(dist);
+        }
+        return rays;
+    }
+
+    // --------------------------------------------------------
+    // 融合算法: IMU + Lidar (JS 实现，逻辑与右侧 C 代码一致)
+    // --------------------------------------------------------
+    function solveFused(rays, imuHeadingDeg) {
+        let imuRad = degToRad(imuHeadingDeg);
+        let delta = degToRad(ANGLE_STEP); // 45度
+
+        let x_votes = [];
+        let y_votes = [];
+        let precise_angles = [];
+
+        // 遍历所有相邻线对进行拟合
+        for(let i=0; i<RAY_COUNT; i++) {
+            let r1 = rays[i];
+            let r2 = rays[(i+1)%RAY_COUNT];
+
+            // 1. Lidar 两点拟合 (几何精修)
+            // r1 相对于"这面墙法线"的偏角 alpha
+            let num = r2 * Math.cos(delta) - r1;
+            let den = r2 * Math.sin(delta);
+            let alpha = Math.atan2(num, den);
+            let dist = r1 * Math.cos(alpha);
+
+            // 过滤：忽略显然跨越角落的数据 (简单阈值，实际可结合IMU判断)
+            if(dist > MAP_SIZE * 1.2 || dist < 0) continue;
+
+            // 2. 计算这面墙法线的 全局角度 (Global Normal Angle)
+            // 射线i的全局角度
+            let rayGlobalAng = imuRad + degToRad(i * ANGLE_STEP);
+            // 墙面法线全局角度 = 射线全局角度 - 射线相对偏角
+            let normalGlobalAng = rayGlobalAng - alpha;
+
+            // 归一化到 0-360
+            normalGlobalAng = (normalGlobalAng % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+            
+            // 3. IMU 判向 (Disambiguation)
+            // 找到最近的基准方向 (0, 90, 180, 270 度)
+            let cardinalStep = Math.PI/2;
+            let cardIdx = Math.round(normalGlobalAng / cardinalStep);
+            let cardinalDir = cardIdx * cardinalStep;
+            
+            // 如果 Lidar 算出的角度和 IMU 指示的基准方向偏差太大，说明这组数据跨越角落了
+            if (Math.abs(normalGlobalAng - cardinalDir) > degToRad(30)) continue;
+
+            // cardIdx mod 4: 0=East(+X), 1=North(+Y), 2=West(-X), 3=South(-Y)
+            let dirType = cardIdx & 3; // 0,1,2,3
+
+            // 4. 坐标解算
+            // dist 是垂直距离。
+            if (dirType === 0) { // 法线向东 (0) -> 墙在左侧? 不，墙法线向东，说明光线打在左墙?
+                // 纠正：我们计算的是射线打到的点。
+                // 如果射线打到了 +X 边界(右墙)，其法线指向 -X (180)。
+                // 刚才算的 normalGlobalAng 其实是 "射线投影方向"。
+                // 让我们重新理一下：
+                // alpha 是 r1 与 垂直距离线 的夹角。
+                // 那个“垂直距离线”的方向就是 normalGlobalAng。
+                // 这实际上就是 r1 这一束光打出去的大致方向。
+                
+                // 如果光指向东 (0度): 打在右墙 (x=500)。测量距离 dist。
+                // x = MAP_SIZE - dist
+                x_votes.push(MAP_SIZE - dist);
+                precise_angles.push(normalGlobalAng); // 记录Lidar修正后的精确东向
+                
+            } else if (dirType === 1) { // 光指向北 (90度): 打在顶墙 (y=500, Canvas坐标系下为底? 不, 我们逻辑坐标系Y向上)
+                // 我们的逻辑坐标系: (0,0)在左下, Y向上。
+                // 90度是 +Y。打在上方墙(y=500)。
+                y_votes.push(MAP_SIZE - dist);
+                precise_angles.push(normalGlobalAng - Math.PI/2); // 记录相对0度的偏差
+                
+            } else if (dirType === 2) { // 光指向西 (180度): 打在左墙 (x=0)。
+                // x = dist
+                x_votes.push(dist);
+                precise_angles.push(normalGlobalAng - Math.PI);
+                
+            } else if (dirType === 3) { // 光指向南 (270度): 打在底墙 (y=0)。
+                // y = dist
+                y_votes.push(dist);
+                precise_angles.push(normalGlobalAng - 1.5*Math.PI);
+            }
+        }
+
+        // 5. 融合平均
+        let avgX = x_votes.reduce((a,b)=>a+b, 0) / (x_votes.length||1);
+        let avgY = y_votes.reduce((a,b)=>a+b, 0) / (y_votes.length||1);
+        
+        // 计算精确的 Lidar 修正角度 (平均所有对齐后的角度偏差)
+        // 这里的 angle 都是对齐到 0 度的
+        let avgFitAng = precise_angles.reduce((a,b)=>a+b, 0) / (precise_angles.length||1);
+
+        return {
+            x: x_votes.length ? avgX : 0,
+            y: y_votes.length ? avgY : 0,
+            countX: x_votes.length,
+            countY: y_votes.length,
+            fitRotation: avgFitAng // 这是 Lidar 认为的精确 Global 0度
+        };
+    }
+
+    // --------------------------------------------------------
+    // 渲染循环
+    // --------------------------------------------------------
+    function draw() {
+        // 模拟 IMU 抖动 (每帧变化)
+        let noise = (Math.random() - 0.5) * 10; // +/- 5度误差
+        let imuReading = player.rotation + noise;
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 地图
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 4;
+        ctx.strokeRect(offsetX, offsetY, MAP_SIZE, MAP_SIZE);
+        ctx.fillStyle = '#666'; ctx.font = '16px monospace';
+        ctx.fillText("O(0,0)", offsetX - 10, offsetY + MAP_SIZE + 25);
+        ctx.fillText("X→", offsetX + MAP_SIZE - 20, offsetY + MAP_SIZE + 25);
+        ctx.fillText("↑Y", offsetX - 30, offsetY + 20);
+
+        const rays = scanEnvironment(player.x, player.y, player.rotation);
+        const sol = solveFused(rays, imuReading);
+
+        const cx = offsetX + player.x;
+        const cy = offsetY + (MAP_SIZE - player.y); // Y轴翻转适配显示
+
+        // 绘制射线
+        for(let i=0; i<RAY_COUNT; i++) {
+            let r = rays[i];
+            // 这里用真实角度画线，因为这是物理世界
+            let angle = degToRad(player.rotation + i * ANGLE_STEP);
+            let ex = cx + r * Math.cos(angle);
+            let ey = cy - r * Math.sin(angle);
+
+            // 根据 IMU 判断这根线属于哪个方向，给不同颜色
+            // 为了演示算法视角，我们用 imuReading 来判断颜色
+            let rayGlobalAng = degToRad(imuReading + i * ANGLE_STEP);
+            rayGlobalAng = (rayGlobalAng % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+            let cardIdx = Math.round(rayGlobalAng / (Math.PI/2)) & 3; 
+            
+            let color = '#444';
+            if (cardIdx === 0) color = '#2196f3'; // 东 (蓝) -> 测 Xmax
+            if (cardIdx === 1) color = '#e91e63'; // 北 (粉) -> 测 Ymax
+            if (cardIdx === 2) color = '#00bcd4'; // 西 (青) -> 测 Xmin
+            if (cardIdx === 3) color = '#ff9800'; // 南 (橙) -> 测 Ymin
+
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey);
+            ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.stroke();
+            ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+        }
+
+        // 绘制玩家实体
+        ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+        
+        // 绘制 IMU 指示 (带噪声)
+        let imuRad = degToRad(imuReading);
+        let imuX = cx + 40 * Math.cos(imuRad);
+        let imuY = cy - 40 * Math.sin(imuRad);
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(imuX, imuY);
+        ctx.strokeStyle = '#2196f3'; ctx.lineWidth = 3; 
+        ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillText("IMU", imuX+5, imuY);
+
+        // 绘制 Lidar 精修后的方向 (更准)
+        let fitRad = sol.fitRotation; 
+        // fitRotation 是 0度 偏差，加上 IMU base? 
+        // sol.fitRotation 是算法算出的绝对 0 度方向
+        // 画出算法认为的 X 轴
+        if (!isNaN(fitRad)) {
+            let fitX = cx + 30 * Math.cos(fitRad);
+            let fitY = cy - 30 * Math.sin(fitRad);
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(fitX, fitY);
+            ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        // 结果可视化：十字准星
+        // 用解算出的 x, y 在地图上画一个十字
+        let solCx = offsetX + sol.x;
+        let solCy = offsetY + (MAP_SIZE - sol.y);
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); 
+        ctx.moveTo(solCx - 10, solCy); ctx.lineTo(solCx + 10, solCy);
+        ctx.moveTo(solCx, solCy - 10); ctx.lineTo(solCx, solCy + 10);
+        ctx.stroke();
+
+        // UI 更新
+        elTruePos.innerText = `${player.x.toFixed(1)}, ${player.y.toFixed(1)}`;
+        elCalcPos.innerText = `${sol.x.toFixed(1)}, ${sol.y.toFixed(1)}`;
+        elImuRead.innerText = `${imuReading.toFixed(1)}°`;
+        elLidarFit.innerText = `${radToDeg(sol.fitRotation).toFixed(1)}°`;
+    }
+
+    // 交互
+    rotSlider.addEventListener('input', (e) => {
+        player.rotation = parseInt(e.target.value);
+        rotVal.innerText = player.rotation + '°';
+        draw();
+    });
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        const m = getMousePos(e);
+        const cx = offsetX + player.x;
+        const cy = offsetY + (MAP_SIZE - player.y);
+        if(Math.hypot(m.x - cx, m.y - cy) < 30) isDragging = true;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if(!isDragging) return;
+        const m = getMousePos(e);
+        let nx = m.x - offsetX;
+        let ny = MAP_SIZE - (m.y - offsetY);
+        nx = Math.max(10, Math.min(MAP_SIZE - 10, nx));
+        ny = Math.max(10, Math.min(MAP_SIZE - 10, ny));
+        player.x = nx; player.y = ny;
+        draw(); // Immediate redraw
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+    
+    // 动画循环 (因为有随机噪声，需要不停重绘以展示滤波效果)
+    function loop() {
+        draw();
+        requestAnimationFrame(loop);
+    }
+    resize();
+    loop(); // Start animation loop
+</script>
+</body>
+</html>

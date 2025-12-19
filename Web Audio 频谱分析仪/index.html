@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Audio 实时频谱分析仪</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #00ffcc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h2 { margin-top: 0; font-weight: 300; letter-spacing: 1px; }
+
+        .controls {
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        button, select {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button { background-color: var(--accent-color); color: #000; font-weight: bold; }
+        button:hover { filter: brightness(0.9); }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        button.stop { background-color: #ff4444; color: white; }
+
+        select { background-color: #333; color: white; border: 1px solid #555; }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        canvas {
+            background-color: #000;
+            border-radius: 4px;
+            border: 1px solid #333;
+            width: 100%;
+        }
+
+        .label {
+            position: absolute;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            pointer-events: none;
+        }
+
+        /* 布局特定样式 */
+        #spectrumCanvas { height: 150px; }
+        #waterfallCanvas { flex-grow: 1; min-height: 200px; }
+        #peakCanvas { height: 150px; }
+        
+        .status { font-size: 12px; color: #888; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h2>Web Audio 频谱分析仪</h2>
+
+    <div class="controls">
+        <button id="btnStart" onclick="toggleAudio()">启动麦克风</button>
+        
+        <label>分辨率 (FFT Size):
+            <select id="fftSelect" onchange="updateFFTSize()">
+                <option value="512">低 (512)</option>
+                <option value="1024">中 (1024)</option>
+                <option value="2048" selected>高 (2048)</option>
+                <option value="4096">超高 (4096)</option>
+            </select>
+        </label>
+
+        <button id="btnExport" onclick="exportToExcel()" disabled>导出峰值记录 (Excel)</button>
+        <span id="recordStatus" class="status"></span>
+    </div>
+
+    <div class="canvas-container">
+        <div style="position: relative;">
+            <canvas id="spectrumCanvas"></canvas>
+            <div class="label" style="top: 5px; left: 5px;">Amplitude (dB) vs Frequency</div>
+        </div>
+
+        <div style="position: relative; flex-grow: 1; display: flex;">
+            <canvas id="waterfallCanvas"></canvas>
+            <div class="label" style="bottom: 5px; left: 5px;">Spectrogram (Time ↑ vs Freq →)</div>
+        </div>
+
+        <div style="position: relative;">
+            <canvas id="peakCanvas"></canvas>
+            <div class="label" style="top: 5px; left: 5px;">Max Freq (Hz) vs Time →</div>
+        </div>
+    </div>
+
+<script>
+    // --- 全局变量 ---
+    let audioCtx, analyser, source, stream;
+    let isRunning = false;
+    let animationId;
+    
+    // Canvas 上下文
+    const cvsSpectrum = document.getElementById('spectrumCanvas');
+    const ctxSpectrum = cvsSpectrum.getContext('2d');
+    
+    const cvsWaterfall = document.getElementById('waterfallCanvas');
+    const ctxWaterfall = cvsWaterfall.getContext('2d');
+    
+    const cvsPeak = document.getElementById('peakCanvas');
+    const ctxPeak = cvsPeak.getContext('2d');
+
+    // 数据记录 (用于导出)
+    let peakHistory = []; // 格式: { time: timestamp, frequency: Hz, volume: value }
+    let startTime = 0;
+
+    // 配置
+    let fftSize = 2048;
+
+    // 初始化 Canvas 尺寸
+    function resizeCanvas() {
+        const container = document.querySelector('.canvas-container');
+        const width = container.clientWidth;
+        
+        // 设置内部分辨率
+        cvsSpectrum.width = width;
+        cvsSpectrum.height = 150;
+        
+        cvsWaterfall.width = width;
+        cvsWaterfall.height = window.innerHeight - 450; // 自适应高度
+        
+        cvsPeak.width = width;
+        cvsPeak.height = 150;
+        
+        // 黑色背景初始化
+        ctxWaterfall.fillStyle = '#000';
+        ctxWaterfall.fillRect(0, 0, cvsWaterfall.width, cvsWaterfall.height);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- 音频核心逻辑 ---
+
+    async function toggleAudio() {
+        const btn = document.getElementById('btnStart');
+        
+        if (isRunning) {
+            // 停止
+            if(audioCtx) audioCtx.suspend();
+            cancelAnimationFrame(animationId);
+            if(stream) stream.getTracks().forEach(track => track.stop());
+            isRunning = false;
+            btn.textContent = "启动麦克风";
+            btn.className = "";
+            document.getElementById('btnExport').disabled = false; // 允许导出
+            document.getElementById('recordStatus').innerText = `已记录 ${peakHistory.length} 条数据`;
+        } else {
+            // 启动
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } else {
+                    audioCtx.resume();
+                }
+
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = parseInt(document.getElementById('fftSelect').value);
+                analyser.smoothingTimeConstant = 0.85; // 使频谱更平滑
+
+                source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                // 重置数据记录
+                peakHistory = [];
+                startTime = Date.now();
+                document.getElementById('btnExport').disabled = true;
+                document.getElementById('recordStatus').innerText = "正在记录...";
+
+                isRunning = true;
+                btn.textContent = "停止";
+                btn.className = "stop";
+                
+                drawLoop();
+            } catch (err) {
+                alert("无法获取麦克风权限: " + err);
+                console.error(err);
+            }
+        }
+    }
+
+    function updateFFTSize() {
+        if (analyser) {
+            analyser.fftSize = parseInt(document.getElementById('fftSelect').value);
+        }
+    }
+
+    // --- 绘图循环 ---
+
+    function drawLoop() {
+        if (!isRunning) return;
+        animationId = requestAnimationFrame(drawLoop);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        // 1. 绘制顶部：实时频谱 (dB vs Freq)
+        drawSpectrum(dataArray, bufferLength);
+
+        // 2. 绘制中部：瀑布图 (Time vs Freq)
+        drawWaterfall(dataArray, bufferLength);
+
+        // 3. 绘制底部：峰值频率追踪 (Freq vs Time)
+        drawPeakTracker(dataArray, bufferLength);
+    }
+
+    // --- 具体的绘图函数 ---
+
+    function drawSpectrum(data, bufferLength) {
+        const w = cvsSpectrum.width;
+        const h = cvsSpectrum.height;
+        ctxSpectrum.fillStyle = 'rgba(0, 0, 0, 1)'; // 清除背景
+        ctxSpectrum.fillRect(0, 0, w, h);
+
+        const barWidth = (w / bufferLength) * 1; // 1 = 覆盖全频段
+        let x = 0;
+
+        ctxSpectrum.beginPath();
+        for (let i = 0; i < bufferLength; i++) {
+            const v = data[i]; // 0-255
+            const y = h - (v / 255) * h; // 映射到高度
+
+            // 颜色根据振幅变化
+            const hue = (i / bufferLength) * 360; 
+            ctxSpectrum.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+            
+            if (i === 0) ctxSpectrum.moveTo(x, y);
+            else ctxSpectrum.lineTo(x, y);
+
+            x += barWidth;
+        }
+        ctxSpectrum.stroke();
+        
+        // 绘制简单的 dB 网格线
+        ctxSpectrum.strokeStyle = '#333';
+        ctxSpectrum.beginPath();
+        ctxSpectrum.moveTo(0, h * 0.25); ctxSpectrum.lineTo(w, h * 0.25); // -10dB approx
+        ctxSpectrum.moveTo(0, h * 0.5); ctxSpectrum.lineTo(w, h * 0.5);   // -20dB approx
+        ctxSpectrum.stroke();
+    }
+
+    function drawWaterfall(data, bufferLength) {
+        const w = cvsWaterfall.width;
+        const h = cvsWaterfall.height;
+
+        // A. 将当前画布内容向上移动 1 像素
+        // 利用 drawImage 把自身画到自身，Y 坐标偏移 -1
+        ctxWaterfall.drawImage(cvsWaterfall, 0, -1, w, h);
+
+        // B. 绘制最底下一行 (当前时刻)
+        // 创建一行图像数据
+        const imgData = ctxWaterfall.createImageData(w, 1);
+        
+        // 我们需要把 bufferLength (例如 1024) 映射到 Canvas 宽度 (例如 800px)
+        for (let x = 0; x < w; x++) {
+            // 找到对应的频率索引
+            const freqIndex = Math.floor((x / w) * bufferLength);
+            const value = data[freqIndex]; // 0-255
+
+            // 生成颜色: 热力图风格
+            // 低: 黑色/蓝色 -> 中: 紫色/红色 -> 高: 黄色/白色 (高光)
+            let r=0, g=0, b=0;
+
+            if (value > 230) { // 高光区域
+                r=255; g=255; b=255; 
+            } else if (value > 180) {
+                r=255; g=255; b=0;
+            } else if (value > 100) {
+                r=value; g=0; b=0;
+            } else if (value > 50) {
+                r=0; g=0; b=value + 50;
+            } else {
+                r=0; g=0; b=0;
+            }
+
+            // 填充 ImageData (R, G, B, A)
+            const pixelIndex = x * 4;
+            imgData.data[pixelIndex] = r;
+            imgData.data[pixelIndex + 1] = g;
+            imgData.data[pixelIndex + 2] = b;
+            imgData.data[pixelIndex + 3] = 255; // Alpha
+        }
+
+        // 将新的一行放在底部
+        ctxWaterfall.putImageData(imgData, 0, h - 1);
+    }
+
+    // 峰值追踪变量
+    let peakX = 0; 
+    
+    function drawPeakTracker(data, bufferLength) {
+        const w = cvsPeak.width;
+        const h = cvsPeak.height;
+
+        // 1. 寻找当前帧的最大振幅频率
+        let maxVal = -1;
+        let maxIndex = -1;
+        
+        // 忽略极低频 (通常是直流偏移或噪音)
+        for (let i = 2; i < bufferLength; i++) { 
+            if (data[i] > maxVal) {
+                maxVal = data[i];
+                maxIndex = i;
+            }
+        }
+
+        // 计算物理频率 Hz
+        const nyquist = audioCtx.sampleRate / 2;
+        const frequency = maxIndex * (nyquist / bufferLength);
+
+        // 记录数据用于导出
+        const currentTime = (Date.now() - startTime) / 1000;
+        peakHistory.push({
+            time: currentTime.toFixed(2),
+            frequency: Math.round(frequency),
+            amplitude: maxVal
+        });
+
+        // 2. 绘制逻辑 (向右滚动)
+        // 类似心电图，如果走到头了，清空重来或者整体左移
+        // 这里采用整体左移风格
+        
+        // 背景微暗淡化 (创造拖尾效果，或者完全重绘)
+        // 为了性能和清晰度，我们使用位移法 (Scroll Left)
+        ctxPeak.drawImage(cvsPeak, -1, 0);
+
+        // 清除最右侧一列
+        ctxPeak.fillStyle = '#000';
+        ctxPeak.fillRect(w - 1, 0, 1, h);
+
+        // 绘制新点
+        // Y轴映射：0 Hz 在底部，Nyquist/2 在顶部 (通常人声乐器主要在 0-5kHz，这里做个缩放)
+        // 假设显示范围 0 - 5000Hz (可视性更好)
+        const displayMaxFreq = 5000; 
+        let y = h - (frequency / displayMaxFreq) * h;
+        if (y < 0) y = 0; // 超出范围顶格显示
+
+        // 如果振幅太低（静音），就不画点
+        if (maxVal > 30) {
+            ctxPeak.fillStyle = '#00ffcc';
+            ctxPeak.fillRect(w - 2, y - 2, 2, 2); // 画一个点
+            
+            // 显示实时数值文本在点旁边 (可选，此处略去以免重叠混乱)
+        }
+    }
+
+    // --- Excel 导出 ---
+
+    function exportToExcel() {
+        if (peakHistory.length === 0) {
+            alert("没有数据可导出。请先录制一段音频。");
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(peakHistory);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Peak_Frequencies");
+
+        // 设置列宽
+        ws['!cols'] = [{wch: 10}, {wch: 15}, {wch: 10}];
+
+        // 表头重命名 (SheetJS 默认用 key 名，我们这里加个说明行也可以，简单处理直接导出)
+        XLSX.writeFile(wb, `Audio_Analysis_${Date.now()}.xlsx`);
+    }
+
+</script>
+</body>
+</html>

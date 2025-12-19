@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMU Serial Dashboard V4 (Custom Mapping)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --neon-green: #2ea043;
+            --neon-red: #ff6b6b;
+            --neon-yellow: #f1e05a;
+            --border-color: #30363d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', 'Roboto', monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 340px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        h2 { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .control-group {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            background: rgba(13, 17, 23, 0.5);
+        }
+        .group-title {
+            font-size: 0.75rem;
+            color: #8b949e;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 4px;
+        }
+
+        /* 映射行样式 */
+        .mapping-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 40px; /* 标签 | 下拉选 | 反转开关 */
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            background: #0d1117;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+        }
+        .axis-label { font-weight: bold; }
+        .axis-x { color: var(--neon-red); }
+        .axis-y { color: var(--neon-green); }
+        .axis-z { color: var(--accent-color); }
+
+        select, button {
+            width: 100%;
+            padding: 6px;
+            background-color: #1f242e;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        button { background: var(--neon-green); color: white; border: none; font-weight: bold; margin-top:5px; padding: 8px;}
+        button:hover { opacity: 0.9; }
+        button.disconnect { background: #da3633; }
+
+        /* 开关样式 */
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #30363d; transition: .4s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* 终端 */
+        .terminal {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: var(--neon-green);
+            overflow-y: auto;
+            min-height: 100px;
+        }
+        .terminal p { margin: 1px 0; white-space: pre-wrap; word-break: break-all;}
+
+        /* 主界面 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+        }
+
+        #canvas-container {
+            flex: 2;
+            background: radial-gradient(circle at center, #21262d 0%, #0d1117 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 悬浮数据面板 */
+        .overlay-data {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            min-width: 140px;
+        }
+        .data-row { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin: 5px 0; display: flex; justify-content: space-between; }
+        .data-label { opacity: 0.7; font-size: 0.8rem; }
+        
+        .c-src-yaw { color: var(--neon-red); }
+        .c-src-pitch { color: var(--neon-green); }
+        .c-src-roll { color: var(--accent-color); }
+
+        .charts-container {
+            flex: 1;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>IMU Dashboard V4</h2>
+
+        <div class="control-group">
+            <div class="group-title">Serial Connection</div>
+            <select id="baudRate">
+                <option value="9600">9600</option>
+                <option value="115200" selected>115200</option>
+                <option value="921600">921600</option>
+            </select>
+            <button id="connectBtn">Connect</button>
+        </div>
+
+        <div class="control-group">
+            <div class="group-title">Axis Mapping (自定义映射)</div>
+            
+            <div class="mapping-row" style="border-left: 3px solid var(--neon-red);">
+                <span class="axis-label axis-x">Model X</span>
+                <select id="map-x">
+                    <option value="yaw">Src: Yaw</option>
+                    <option value="pitch" selected>Src: Pitch</option>
+                    <option value="roll">Src: Roll</option>
+                    <option value="zero">Disabled</option>
+                </select>
+                <label class="switch" title="反转"><input type="checkbox" id="inv-x"><span class="slider"></span></label>
+            </div>
+            <div style="font-size:10px; color:#666; margin-top:-5px; margin-bottom:5px; text-align:right;">Controls: Pitch (俯仰)</div>
+
+            <div class="mapping-row" style="border-left: 3px solid var(--neon-green);">
+                <span class="axis-label axis-y">Model Y</span>
+                <select id="map-y">
+                    <option value="yaw" selected>Src: Yaw</option>
+                    <option value="pitch">Src: Pitch</option>
+                    <option value="roll">Src: Roll</option>
+                    <option value="zero">Disabled</option>
+                </select>
+                <label class="switch" title="反转"><input type="checkbox" id="inv-y" checked><span class="slider"></span></label>
+            </div>
+            <div style="font-size:10px; color:#666; margin-top:-5px; margin-bottom:5px; text-align:right;">Controls: Yaw (偏航)</div>
+
+            <div class="mapping-row" style="border-left: 3px solid var(--accent-color);">
+                <span class="axis-label axis-z">Model Z</span>
+                <select id="map-z">
+                    <option value="yaw">Src: Yaw</option>
+                    <option value="pitch">Src: Pitch</option>
+                    <option value="roll" selected>Src: Roll</option>
+                    <option value="zero">Disabled</option>
+                </select>
+                <label class="switch" title="反转"><input type="checkbox" id="inv-z"><span class="slider"></span></label>
+            </div>
+            <div style="font-size:10px; color:#666; margin-top:-5px; margin-bottom:5px; text-align:right;">Controls: Roll (翻滚)</div>
+        </div>
+
+        <div style="flex-grow: 1; display: flex; flex-direction: column;">
+            <div class="group-title">Terminal Log</div>
+            <div class="terminal" id="terminal">
+                <p>> Ready to map.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="canvas-container">
+            <div class="overlay-data">
+                <div style="border-bottom:1px solid #333; margin-bottom:5px; font-size:10px; color:#999">SERIAL INPUT</div>
+                <div class="data-row c-src-yaw"><span class="data-label">IN: YAW</span> <span id="val-yaw">0.0</span></div>
+                <div class="data-row c-src-pitch"><span class="data-label">IN: PITCH</span> <span id="val-pitch">0.0</span></div>
+                <div class="data-row c-src-roll"><span class="data-label">IN: ROLL</span> <span id="val-roll">0.0</span></div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <canvas id="realtimeChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Three.js Setup (保持 V3 的优秀模型) ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        const container = document.getElementById('canvas-container');
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        const shipGroup = new THREE.Group();
+
+        // 机身 (Body)
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(2, 0.5, 4),
+            new THREE.MeshPhongMaterial({ color: 0x222222 })
+        );
+        shipGroup.add(body);
+
+        // 线框 (Wireframe)
+        const wire = new THREE.Mesh(
+            new THREE.BoxGeometry(2.05, 0.55, 4.05),
+            new THREE.MeshBasicMaterial({ color: 0x58a6ff, wireframe: true, opacity: 0.3, transparent: true })
+        );
+        shipGroup.add(wire);
+
+        // 机翼 (Wings - X轴宽)
+        const wing = new THREE.Mesh(
+            new THREE.BoxGeometry(6, 0.1, 1.5),
+            new THREE.MeshPhongMaterial({ color: 0x58a6ff })
+        );
+        wing.position.z = 0.5;
+        shipGroup.add(wing);
+
+        // 机头 (Nose - 指向 -Z)
+        const nose = new THREE.Mesh(
+            new THREE.ConeGeometry(0.5, 1.5, 8),
+            new THREE.MeshPhongMaterial({ color: 0xff6b6b })
+        );
+        nose.rotation.x = -Math.PI / 2;
+        nose.position.z = -2.75;
+        shipGroup.add(nose);
+
+        // 垂直尾翼 (Tail - +Y)
+        const tail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.2, 1.5, 1.5),
+            new THREE.MeshPhongMaterial({ color: 0x2ea043 })
+        );
+        tail.position.y = 0.75;
+        tail.position.z = 1.5;
+        shipGroup.add(tail);
+
+        scene.add(new THREE.AxesHelper(6)); // 坐标轴辅助
+        scene.add(shipGroup);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        camera.position.set(6, 5, 8);
+        camera.lookAt(0, 0, 0);
+
+        new ResizeObserver(() => {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }).observe(container);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- 2. Chart.js (显示原始输入) ---
+        const ctx = document.getElementById('realtimeChart').getContext('2d');
+        const maxPoints = 100;
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(maxPoints).fill(''),
+                datasets: [
+                    { label: 'Src Yaw', data: [], borderColor: '#ff6b6b', borderWidth: 1, pointRadius: 0 },
+                    { label: 'Src Pitch', data: [], borderColor: '#2ea043', borderWidth: 1, pointRadius: 0 },
+                    { label: 'Src Roll', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: { x: { display: false }, y: { grid: { color: '#30363d' } } },
+                plugins: { legend: { labels: { color: '#c9d1d9' } } }
+            }
+        });
+
+        // --- 3. 逻辑控制 ---
+        let port, reader, keepReading = false, buffer = "";
+        
+        // UI 引用
+        const connectBtn = document.getElementById('connectBtn');
+        const terminal = document.getElementById('terminal');
+        
+        // 映射控制 UI
+        const mapX = document.getElementById('map-x'); // 控制模型X轴 (Pitch)
+        const mapY = document.getElementById('map-y'); // 控制模型Y轴 (Yaw)
+        const mapZ = document.getElementById('map-z'); // 控制模型Z轴 (Roll)
+        
+        const invX = document.getElementById('inv-x');
+        const invY = document.getElementById('inv-y');
+        const invZ = document.getElementById('inv-z');
+
+        // 数据显示 UI
+        const elYaw = document.getElementById('val-yaw');
+        const elPitch = document.getElementById('val-pitch');
+        const elRoll = document.getElementById('val-roll');
+
+        function log(msg) {
+            const p = document.createElement('p');
+            p.textContent = msg;
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+            if(terminal.childElementCount > 50) terminal.removeChild(terminal.firstChild);
+        }
+
+        async function toggleConn() {
+            if (port && port.readable) {
+                keepReading = false;
+                if(reader) await reader.cancel();
+                if(port) await port.close();
+                connectBtn.textContent = "Connect";
+                connectBtn.classList.remove('disconnect');
+                return;
+            }
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: parseInt(document.getElementById('baudRate').value) });
+                keepReading = true;
+                connectBtn.textContent = "Disconnect";
+                connectBtn.classList.add('disconnect');
+                readLoop();
+            } catch (e) { log("Err: " + e); }
+        }
+        connectBtn.onclick = toggleConn;
+
+        async function readLoop() {
+            const textDecoder = new TextDecoderStream();
+            port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        buffer += value;
+                        const lines = buffer.split(/\r?\n/);
+                        buffer = lines.pop();
+                        lines.forEach(l => { if(l.trim()) process(l); });
+                    }
+                }
+            } catch (e) { console.error(e); }
+            finally { reader.releaseLock(); }
+        }
+
+        function process(line) {
+            log(line);
+            // 兼容 Raw 或 Roll
+            const regex = /Yaw:([-\d\.]+)\s+Pitch:([-\d\.]+)\s+(?:Raw|Roll):([-\d\.]+)/i;
+            const match = line.match(regex);
+
+            if (match) {
+                // 1. 获取原始数据 (Source Data)
+                const srcData = {
+                    yaw: parseFloat(match[1]),
+                    pitch: parseFloat(match[2]),
+                    roll: parseFloat(match[3]),
+                    zero: 0 // 用于禁用某个轴
+                };
+
+                updateViz(srcData);
+            }
+        }
+
+        function updateViz(src) {
+            // 更新 UI 文本 (显示的是原始串口输入)
+            elYaw.innerText = src.yaw.toFixed(1);
+            elPitch.innerText = src.pitch.toFixed(1);
+            elRoll.innerText = src.roll.toFixed(1);
+
+            // 更新图表 (显示原始输入)
+            const ds = chart.data.datasets;
+            if (ds[0].data.length >= maxPoints) ds.forEach(d => d.data.shift());
+            ds[0].data.push(src.yaw);
+            ds[1].data.push(src.pitch);
+            ds[2].data.push(src.roll);
+            chart.update('none');
+
+            // --- 核心更新：自定义映射应用 ---
+            const d2r = Math.PI / 180;
+            
+            // 1. 读取下拉菜单，决定哪个数据源控制哪个模型轴
+            const srcForX = src[mapX.value]; // Model X (Pitch) 用哪个数据?
+            const srcForY = src[mapY.value]; // Model Y (Yaw) 用哪个数据?
+            const srcForZ = src[mapZ.value]; // Model Z (Roll) 用哪个数据?
+
+            // 2. 读取反转状态
+            const signX = invX.checked ? -1 : 1;
+            const signY = invY.checked ? -1 : 1;
+            const signZ = invZ.checked ? -1 : 1;
+
+            // 3. 应用旋转
+            shipGroup.rotation.order = 'YXZ'; // 防止死锁
+            
+            // 这里的 rotation.x/y/z 是模型的物理轴
+            shipGroup.rotation.x = srcForX * d2r * signX;
+            shipGroup.rotation.y = srcForY * d2r * signY; 
+            shipGroup.rotation.z = srcForZ * d2r * signZ;
+        }
+    </script>
+</body>
+</html>

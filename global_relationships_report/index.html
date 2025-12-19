@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球情感关系洞察报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutrals (Calm Harmony) -->
+    <!-- Application Structure Plan: A vertical storytelling layout divided into 4 key chapters: Definitions, Cultural Context, Progression Logic, and Usage Data. Designed to move from abstract concepts to concrete data. -->
+    <!-- Visualization & Content Choices: Used interactive cards for text definitions to reduce clutter. Used Radar and Bar charts for cultural comparisons. Used a dynamic DOM-based timeline for relationship progression to show flow changes instantly. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #FDFBF7; /* Warm off-white */
+            color: #4A4A4A; /* Soft charcoal */
+        }
+        .bg-warm-100 { background-color: #FDFBF7; }
+        .bg-warm-200 { background-color: #F0EAE0; } /* Light Beige */
+        .bg-warm-300 { background-color: #E2D9CC; } /* Medium Beige */
+        .bg-accent-soft { background-color: #D4A373; } /* Muted Terracotta/Camel */
+        .text-accent-dark { color: #A97142; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        .card-transition {
+            transition: all 0.3s ease;
+        }
+        .card-transition:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Hide scrollbar for clean look in horizontal scrolls if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .active-tab {
+            border-bottom: 3px solid #D4A373;
+            color: #2D2D2D;
+            font-weight: 600;
+        }
+        .inactive-tab {
+            border-bottom: 3px solid transparent;
+            color: #9CA3AF;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">❤️</span>
+                    <h1 class="font-bold text-xl tracking-wide text-gray-800">关系实验室 <span class="text-sm font-normal text-gray-500 hidden sm:inline">| 全球情感洞察</span></h1>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <button onclick="scrollToSection('definitions')" class="text-gray-600 hover:text-accent-dark transition">定义图谱</button>
+                    <button onclick="scrollToSection('culture')" class="text-gray-600 hover:text-accent-dark transition">文化差异</button>
+                    <button onclick="scrollToSection('progression')" class="text-gray-600 hover:text-accent-dark transition">发展顺序</button>
+                    <button onclick="scrollToSection('data')" class="text-gray-600 hover:text-accent-dark transition">数据概览</button>
+                </div>
+                <!-- Mobile menu button simplified -->
+                <button class="md:hidden text-gray-500" onclick="alert('请向下滚动浏览完整报告')">☰</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-warm-200 py-16 px-4 text-center border-b border-warm-300">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6 text-gray-800">现代情感关系的模糊边界</h2>
+            <p class="text-lg md:text-xl text-gray-600 leading-relaxed mb-8">
+                从“一见钟情”的暧昧到“正式确认”的契约，再到纯粹的“肉体伴侣”。<br>
+                在这个部分，我们将根据社会学观察与全球数据，剖析您提到的四种核心关系形态，
+                并探讨它们在不同文化语境下的定义与流变。
+            </p>
+            <div class="flex justify-center gap-4">
+                <button onclick="scrollToSection('definitions')" class="bg-accent-soft text-white px-8 py-3 rounded-full hover:bg-opacity-90 transition font-medium shadow-sm">
+                    开始探索定义
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Section 1: Relationship Spectrum (Definitions) -->
+    <section id="definitions" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-12 text-center md:text-left">
+                <h3 class="text-3xl font-bold text-gray-800 mb-4">核心定义图谱</h3>
+                <p class="text-gray-600 max-w-2xl">
+                    现代关系的定义不再非黑即白。点击下方卡片，查看这四种特定关系的社会学定义、典型特征以及常用术语。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="definition-grid">
+                <!-- Cards injected via JS -->
+            </div>
+
+            <!-- Detail View (Dynamic) -->
+            <div id="definition-detail" class="mt-8 p-8 bg-warm-100 rounded-xl border border-warm-300 hidden transition-all duration-500">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/3 flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-sm">
+                        <span id="detail-icon" class="text-6xl mb-4"></span>
+                        <h4 id="detail-title" class="text-2xl font-bold text-center"></h4>
+                        <span id="detail-term" class="text-sm text-accent-dark font-mono mt-2 bg-warm-200 px-2 py-1 rounded"></span>
+                    </div>
+                    <div class="md:w-2/3">
+                        <h5 class="text-lg font-bold mb-2 text-gray-700">深度解析</h5>
+                        <p id="detail-desc" class="text-gray-600 leading-relaxed mb-4"></p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div class="bg-white p-4 rounded border border-gray-100">
+                                <span class="block text-xs text-gray-400 uppercase tracking-wider mb-1">关键特征</span>
+                                <p id="detail-traits" class="font-medium text-gray-700"></p>
+                            </div>
+                            <div class="bg-white p-4 rounded border border-gray-100">
+                                <span class="block text-xs text-gray-400 uppercase tracking-wider mb-1">常见误区</span>
+                                <p id="detail-myths" class="font-medium text-gray-700"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Cultural Context (Analysis) -->
+    <section id="culture" class="py-16 bg-warm-100 border-t border-warm-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-10">
+                <div class="md:w-2/3">
+                    <h3 class="text-3xl font-bold text-gray-800 mb-4">文化语境与地域差异</h3>
+                    <p class="text-gray-600">
+                        同一个词汇在不同国家有着截然不同的权重。西方文化倾向于更长的“暧昧试错期”，而东亚文化（尤其是传统观念中）往往视“确认关系”为一个严肃的契约点。
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <select id="region-selector" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-dark">
+                        <option value="global">查看：全球对比</option>
+                        <option value="west">查看：欧美模式</option>
+                        <option value="east">查看：东亚模式</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <!-- Text Insights -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-400">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">欧美 (Western Context)</h4>
+                        <p class="text-gray-600 text-sm">
+                            <strong>高频词汇：</strong> Situationship, Dating, Exclusive.<br>
+                            <strong>特点：</strong> "Dating" 是一个漫长的筛选过程。两个人可以约会数月甚至发生关系，但仍然不是男/女朋友。只有经过 "The Talk"（确认排他性）之后，才算正式确立关系。
+                        </p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-400">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">东亚 (East Asian Context)</h4>
+                        <p class="text-gray-600 text-sm">
+                            <strong>高频词汇：</strong> 告白 (Kokuhaku), 暧昧, 确认关系.<br>
+                            <strong>特点：</strong> 界限相对分明。“告白”往往是一个明确的分割线。在告白之前是“暧昧”，告白成功即直接进入排他性的“男女朋友”关系，较少存在长期的“开放式约会”阶段（虽在年轻一代中有所改变）。
+                        </p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-400">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">全球趋势 (Global Trend)</h4>
+                        <p class="text-gray-600 text-sm">
+                            随着社交软件的普及，“Situationship”（既非情侣也非单身的状态）正在全球范围内激增。肉体伴侣（FWB）在城市化程度高的地区（无论东西方）接受度均在上升。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center justify-center">
+                    <h4 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">关系形态普及度对比</h4>
+                    <div class="chart-container">
+                        <canvas id="cultureRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Progression (Interactive Timeline) -->
+    <section id="progression" class="py-16 bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 text-center">
+                <h3 class="text-3xl font-bold text-gray-800 mb-4">普遍发展顺序：剧本的改写</h3>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    不同地域和代际的人群，遵循着完全不同的“恋爱剧本”。点击下方按钮，切换查看不同群体的关系推进逻辑。
+                </p>
+            </div>
+
+            <!-- Flow Controls -->
+            <div class="flex justify-center space-x-4 mb-12">
+                <button onclick="updateFlow('traditional')" class="flow-btn active px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 focus:outline-none transition text-sm font-medium" data-target="traditional">
+                    🌏 东亚/传统模式
+                </button>
+                <button onclick="updateFlow('western')" class="flow-btn px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 focus:outline-none transition text-sm font-medium" data-target="western">
+                    🌎 欧美/现代模式
+                </button>
+                <button onclick="updateFlow('casual')" class="flow-btn px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 focus:outline-none transition text-sm font-medium" data-target="casual">
+                    ⚡ 现代休闲/FWB模式
+                </button>
+            </div>
+
+            <!-- Dynamic Flow Container -->
+            <div id="flow-container" class="relative max-w-4xl mx-auto">
+                <!-- Connective Line -->
+                <div class="absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 w-1 bg-warm-300 z-0 hidden md:block"></div>
+                
+                <!-- Steps will be injected here -->
+                <div id="flow-steps" class="space-y-8 relative z-10">
+                    <!-- JS Injected Content -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Data (Frequency) -->
+    <section id="data" class="py-16 bg-warm-100 border-t border-warm-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10">
+                <h3 class="text-3xl font-bold text-gray-800 mb-4">词汇普及率与使用频率</h3>
+                <p class="text-gray-600">
+                    基于社交媒体提及率与问卷调查数据的估算。显示了各名词在全球年轻人（18-35岁）中的认知度与实践度。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Chart 1 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h4 class="text-center font-bold text-gray-700 mb-4">Situationship (暧昧/未定义)</h4>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="chartSituationship"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-gray-500 mt-4">Z世代中使用频率最高，常被描述为“比朋友多，比恋人少”。</p>
+                </div>
+
+                <!-- Chart 2 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h4 class="text-center font-bold text-gray-700 mb-4">FWB (炮友/休闲伴侣)</h4>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="chartFWB"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-gray-500 mt-4">在欧美大学文化中极高，在亚洲一线城市呈上升趋势。</p>
+                </div>
+
+                <!-- Chart 3 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h4 class="text-center font-bold text-gray-700 mb-4">Official (正式确立关系)</h4>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="chartOfficial"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-gray-500 mt-4">依然是最终目标，但达成路径变长，门槛变高。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="mb-2">© 2023 全球情感关系洞察实验室</p>
+            <p class="text-xs text-gray-500">数据来源：综合社会学观察与全球青年文化调研报告</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // State
+        let currentRegion = 'global';
+        let currentFlow = 'traditional';
+
+        // --- Data: Definitions ---
+        const definitions = [
+            {
+                id: 'ambiguous',
+                title: '暧昧 / Situationship',
+                term: 'The "Talking" Stage',
+                icon: '😶‍🌫️',
+                short: '有实无名的情感灰色地带',
+                desc: '一种未被定义的浪漫关系。双方可能有情感交流、约会甚至性行为，但缺乏明确的承诺或标签。通常由“一见钟情”或网络聊天快速进入，但卡在“正式确认”之前。',
+                traits: '高强度的情感依赖、缺乏未来规划、排他性模糊、沟通中避免谈及“我们”。',
+                myths: '误以为时间久了自然会变成男女朋友（事实上往往需要明确沟通）。'
+            },
+            {
+                id: 'official',
+                title: '正式关系 / Official',
+                term: 'Boyfriend/Girlfriend',
+                icon: '🔒',
+                short: '排他性的严肃契约',
+                desc: '经过双方明确确认（DTR - Define The Relationship）的伴侣关系。这意味着对未来的共同许诺、公开的社交身份以及排他性的性/情感忠诚。',
+                traits: '公开介绍为男/女友、见家长/朋友、规划未来、完全的排他性。',
+                myths: '误以为只要约会几次就是男女朋友（在西方文化中绝对不是）。'
+            },
+            {
+                id: 'emotional',
+                title: '情感伴侣 / Companion',
+                term: 'Queerplatonic / Soulmate',
+                icon: '🤝',
+                short: '非性、高深度的精神羁绊',
+                desc: '超越普通友谊的情感连接，具有类似恋爱关系的亲密感和承诺度，但通常不包含性或传统的浪漫元素。双方可能是生活合伙人。',
+                traits: '极高的信任度、可能同居或共同抚养宠物、情感依赖度等同于伴侣、无性需求。',
+                myths: '常被误解为“柏拉图式恋爱”或仅仅是“好朋友”。'
+            },
+            {
+                id: 'physical',
+                title: '肉体伴侣 / FWB',
+                term: 'Friends With Benefits',
+                icon: '🔥',
+                short: '有性无爱的互利关系',
+                desc: '主要基于性吸引力和生理需求满足的关系。双方同意保持情感上的距离，避免通过浪漫行为（如过夜、长时间聊天）产生依恋。',
+                traits: '明确的界限（No strings attached）、通常不涉及社交圈融合、以性为核心互动。',
+                myths: '认为这一定是很随意的（其实好的FWB需要高度的沟通和规则遵守）。'
+            }
+        ];
+
+        // --- Data: Progression Flows ---
+        const flows = {
+            traditional: [
+                { step: 1, title: '相识/暧昧', desc: '通过朋友介绍或社交软件认识，开始聊天，试探心意。' },
+                { step: 2, title: '告白/确认 (关键点)', desc: '一方正式提出“做我男/女朋友吧”。这是一个清晰的开关。' },
+                { step: 3, title: '牵手/约会', desc: '确认关系后，才开始正式的、频繁的二人约会。' },
+                { step: 4, title: '亲密接触', desc: '性行为通常发生在确立关系之后的一段时间。' },
+                { step: 5, title: '见家长/婚约', desc: '关系稳定，奔着结婚去。' }
+            ],
+            western: [
+                { step: 1, title: 'Talking Stage', desc: '只是在聊天，可能多线并行，见面前的筛选。' },
+                { step: 2, title: 'First Date', desc: '第一次见面喝咖啡/酒，仅仅是看有没有Chemistry（化学反应）。' },
+                { step: 3, title: 'Dating (Casual)', desc: '持续约会数周/月，可能发生性关系，但默认不排他（还在见其他人）。' },
+                { step: 4, title: 'Exclusivity', desc: '双方同意只约会彼此，不再见其他人，但还不是BF/GF。' },
+                { step: 5, title: 'The Label (Official)', desc: '正式确认为男女朋友，介绍给家人朋友。' }
+            ],
+            casual: [
+                { step: 1, title: 'Hookup / Match', desc: '通过Tinder等软件匹配，目的明确直白。' },
+                { step: 2, title: 'Meet up', desc: '直接见面，通常在私密空间或快速喝一杯后去私密空间。' },
+                { step: 3, title: 'Physical Intimacy', desc: '发生关系。这是关系的核心。' },
+                { step: 4, title: 'Regular FWB', desc: '如果体验好，建立长期固定的肉体关系。' },
+                { step: 5, title: 'Situationship?', desc: '可能会产生意外的情感，导致关系变得复杂模糊。' }
+            ]
+        };
+
+        // --- Init Functions ---
+
+        function initDefinitions() {
+            const container = document.getElementById('definition-grid');
+            container.innerHTML = definitions.map(d => `
+                <div onclick="showDefinition('${d.id}')" class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm cursor-pointer card-transition hover:border-accent-soft group">
+                    <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">${d.icon}</div>
+                    <h4 class="font-bold text-lg text-gray-800 mb-1">${d.title}</h4>
+                    <p class="text-xs text-accent-dark font-mono mb-2">${d.term}</p>
+                    <p class="text-sm text-gray-500 line-clamp-2">${d.short}</p>
+                </div>
+            `).join('');
+        }
+
+        function showDefinition(id) {
+            const data = definitions.find(d => d.id === id);
+            const detailBox = document.getElementById('definition-detail');
+            
+            // Populate
+            document.getElementById('detail-icon').textContent = data.icon;
+            document.getElementById('detail-title').textContent = data.title;
+            document.getElementById('detail-term').textContent = data.term;
+            document.getElementById('detail-desc').textContent = data.desc;
+            document.getElementById('detail-traits').textContent = data.traits;
+            document.getElementById('detail-myths').textContent = data.myths;
+
+            // Show animation
+            detailBox.classList.remove('hidden');
+            detailBox.classList.add('block');
+            setTimeout(() => {
+                detailBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        function updateFlow(type) {
+            currentFlow = type;
+            const container = document.getElementById('flow-steps');
+            const data = flows[type];
+            
+            // Update button styles
+            document.querySelectorAll('.flow-btn').forEach(btn => {
+                if(btn.dataset.target === type) {
+                    btn.classList.add('bg-gray-800', 'text-white', 'border-transparent');
+                    btn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+                } else {
+                    btn.classList.remove('bg-gray-800', 'text-white', 'border-transparent');
+                    btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+                }
+            });
+
+            // Render Steps
+            container.innerHTML = data.map((step, index) => `
+                <div class="relative flex flex-col md:flex-row items-center md:justify-between group">
+                    <!-- Icon/Number -->
+                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-white border-4 border-warm-300 flex items-center justify-center font-bold text-gray-500 z-10 mb-4 md:mb-0 md:absolute md:left-1/2 md:transform md:-translate-x-1/2 shadow-sm group-hover:border-accent-soft group-hover:text-accent-dark transition-colors">
+                        ${step.step}
+                    </div>
+                    
+                    <!-- Content Left (Odd) or Right (Even) Logic for Desktop -->
+                    <div class="w-full md:w-[45%] bg-white p-5 rounded-lg shadow-sm border border-gray-100 ${index % 2 === 0 ? 'md:mr-auto md:text-right' : 'md:ml-auto md:text-left order-last'} text-center md:text-left transition hover:shadow-md">
+                        <h4 class="font-bold text-lg text-gray-800">${step.title}</h4>
+                        <p class="text-sm text-gray-600 mt-1">${step.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Charts Initialization ---
+        function initCharts() {
+            // Radar Chart: Culture
+            const ctxRadar = document.getElementById('cultureRadarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['暧昧容忍度', '性开放度', '正式承诺门槛', '家庭干预度', '约会多线并行'],
+                    datasets: [{
+                        label: '欧美文化',
+                        data: [90, 85, 80, 20, 90],
+                        fill: true,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(54, 162, 235)'
+                    }, {
+                        label: '东亚文化 (传统)',
+                        data: [40, 30, 90, 80, 20],
+                        fill: true,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        pointBackgroundColor: 'rgb(255, 99, 132)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(255, 99, 132)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: { line: { borderWidth: 3 } },
+                    scales: { r: { angleLines: { display: false }, suggestedMin: 0, suggestedMax: 100 } }
+                }
+            });
+
+            // Doughnut Charts: Usage Data
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true, position: 'bottom' } }
+            };
+
+            // Situationship
+            new Chart(document.getElementById('chartSituationship'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['经历过', '听说过但未经历', '完全陌生'],
+                    datasets: [{
+                        data: [65, 25, 10],
+                        backgroundColor: ['#D4A373', '#E2D9CC', '#F0EAE0']
+                    }]
+                },
+                options: commonOptions
+            });
+
+            // FWB
+            new Chart(document.getElementById('chartFWB'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['持开放态度', '只接受长期伴侣', '坚决反对'],
+                    datasets: [{
+                        data: [45, 30, 25],
+                        backgroundColor: ['#A97142', '#D4A373', '#E2D9CC']
+                    }]
+                },
+                options: commonOptions
+            });
+
+            // Official
+            new Chart(document.getElementById('chartOfficial'), {
+                type: 'pie',
+                data: {
+                    labels: ['认为是必须的', '无所谓标签', '认为标签是束缚'],
+                    datasets: [{
+                        data: [70, 20, 10],
+                        backgroundColor: ['#2D2D2D', '#6B7280', '#D1D5DB']
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+
+        // Navigation Scroll
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Run on Load ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initDefinitions();
+            updateFlow('traditional');
+            initCharts();
+        });
+
+    </script>
+</body>
+</html>

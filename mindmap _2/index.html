@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>56个民族（蒙古族）- 深度定制版</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+    /* 基础布局 */
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #f5f7fa; /* 网页背景色，导出时会被忽略 */
+        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 导图容器 */
+    #app {
+        width: 100vw;
+        height: 100vh;
+        transition: width 0.3s;
+    }
+
+    /* --- 右侧侧边栏 --- */
+    .sidebar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 340px; /* 稍微加宽一点以显示父级备注 */
+        height: 100%;
+        background: white;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #eee;
+    }
+
+    .sidebar-header {
+        padding: 20px;
+        background: #fff;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sidebar-header h2 {
+        margin: 0 0 15px 0;
+        font-size: 18px;
+        color: #333;
+        font-weight: 600;
+    }
+
+    /* 配置组 */
+    .config-group {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .config-group label { font-size: 14px; color: #666; }
+    input[type="color"] { border: none; width: 50px; height: 28px; cursor: pointer; background: none; }
+    select, input[type="range"] { padding: 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px; }
+
+    /* 节点列表 (滚动区) */
+    .node-list-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 20px;
+        background: #fafafa;
+    }
+    
+    .list-title {
+        font-size: 12px;
+        color: #999;
+        margin: 10px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .node-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+        color: #555;
+        cursor: pointer;
+    }
+    .node-item:hover { background-color: #f0f0f0; }
+    .node-item input { margin-right: 10px; cursor: pointer; }
+    
+    .node-content { display: flex; flex-direction: column; line-height: 1.4; }
+    .node-parent-hint { font-size: 11px; color: #999; margin-top: 2px; }
+
+    /* 底部按钮区 */
+    .sidebar-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #eee;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .btn {
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        width: 100%;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    .btn-reset { background-color: #f1f3f4; color: #555; }
+    .btn-reset:hover { background-color: #e0e2e4; }
+    
+    .btn-export { background-color: #2ecc71; color: white; font-weight: bold; }
+    .btn-export:hover { background-color: #27ae60; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+    <svg id="mindmap" style="width:100%; height:100%"></svg>
+</div>
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h2>🛠 自由定制与导出</h2>
+        
+        <div class="config-group">
+            <label>强调颜色</label>
+            <input type="color" id="colorPicker" value="#d63031" onchange="renderMap()">
+        </div>
+
+        <div class="config-group">
+            <label>强调样式</label>
+            <select id="styleMode" onchange="renderMap()">
+                <option value="text">加粗变色</option>
+                <option value="background">荧光笔高亮</option>
+                <option value="border">边框圈注</option>
+            </select>
+        </div>
+        
+         <div class="config-group">
+            <label>展开层级</label>
+             <input type="range" id="depthRange" min="1" max="4" step="1" value="2" oninput="renderMap()">
+        </div>
+    </div>
+
+    <div class="node-list-container">
+        <div class="list-title">勾选内容进行强调：</div>
+        <div id="checklist"></div>
+    </div>
+
+    <div class="sidebar-footer">
+        <button class="btn btn-reset" onclick="resetSelection()">↺ 重置勾选</button>
+        <button class="btn btn-export" onclick="exportImage()">📸 导出透明背景截图</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.4/dist/browser/index.min.js"></script>
+
+<script>
+    // --- 1. 数据源与解析逻辑 ---
+
+    // 原始 Markdown 字符串
+    const rawMarkdownSource = `
+# 56个民族<br/>(蒙古族)
+## 整体活动：初识蒙古族
+## 活动一：蒙古族律动（柔臂）
+- 欣赏歌曲《牧歌》
+- 学习蒙古族律动：柔臂
+- 巩固提升
+## 活动二：律动游戏<br/>“那达慕大会”（笑肩）
+- 欣赏歌曲《蒙古走马舞》
+- 学习蒙古族律动：笑肩
+    - 导入
+        - 热身
+        - 导入：照片
+        - 欣赏蒙古舞
+    - 新授
+        - 学习动作要领
+        - 模仿练习
+        - 跟音乐练习
+    - 巩固提升
+        - 情景创设
+        - 教师引领
+        - 学生自主参与
+- 那达慕大会（提升，拓展）
+## 统整活动：舞林大会<br/>（蒙古律动展示）
+`;
+
+    // 存储解析后的行对象结构
+    let parsedLines = [];
+    // 存储被勾选的行的索引 (Set<Index>)
+    let checkedIndices = new Set();
+
+    // 解析 Markdown，构建带有层级上下文的对象数组
+    function parseMarkdown() {
+        const lines = rawMarkdownSource.split('\n');
+        const result = [];
+        const stack = []; // 用于追踪父级
+
+        lines.forEach((line, index) => {
+            if (!line.trim()) {
+                result.push({ text: line, type: 'empty', index });
+                return;
+            }
+
+            // 计算缩进层级 (假设是空格缩进或 # 号层级)
+            let level = 0;
+            let content = line;
+            
+            // 处理 # 标题
+            const headerMatch = line.match(/^(#+)\s/);
+            if (headerMatch) {
+                level = headerMatch[1].length - 1; // # 是 0级, ## 是 1级
+                content = line.replace(/^(#+)\s/, '');
+            } else {
+                // 处理列表 - 
+                const listMatch = line.match(/^(\s*)-\s/);
+                if (listMatch) {
+                    // 假设每4个空格或1个tab是一级，粗略计算，结合 # 的层级
+                    const spaces = listMatch[1].length;
+                    level = 1 + Math.floor(spaces / 4); // 基础层级为1 (## 下面)
+                    content = line.replace(/^(\s*)-\s/, '');
+                } else {
+                     // 纯文本或其他
+                     result.push({ text: line, type: 'raw', index });
+                     return;
+                }
+            }
+
+            // 维护栈以获取父级名称
+            stack[level] = content;
+            // 清除比当前层级更深的记录
+            stack.splice(level + 1);
+
+            // 获取直接父级名称 (用于 UI 区分同名节点)
+            const parentName = level > 0 ? stack[level - 1] : '';
+
+            result.push({
+                originalLine: line,
+                cleanText: content.trim(),
+                level: level,
+                parent: parentName ? parentName.replace(/<br\/>/g, ' ') : null,
+                index: index,
+                type: 'node'
+            });
+        });
+        return result;
+    }
+
+    // --- 2. 初始化与交互 ---
+
+    function init() {
+        parsedLines = parseMarkdown();
+        
+        // 默认勾选列表 (通过文本匹配索引，初始化一次)
+        // 这里手动指定要默认勾选的内容，模拟智能识别
+        parsedLines.forEach(item => {
+            if (item.type !== 'node') return;
+            const t = item.cleanText;
+            // 默认勾选逻辑：活动二及其下属关键点
+            if (t.includes('活动二') || 
+                t === '学习蒙古族律动：笑肩' || 
+                t === '导入' || 
+                t === '新授' || 
+                // 只勾选 活动二 下面的 巩固提升
+                (t === '巩固提升' && item.parent && item.parent.includes('笑肩')) 
+               ) {
+                checkedIndices.add(item.index);
+            }
+        });
+
+        renderChecklist();
+        renderMap();
+    }
+
+    // 渲染右侧勾选列表
+    function renderChecklist() {
+        const container = document.getElementById('checklist');
+        container.innerHTML = '';
+
+        parsedLines.forEach(item => {
+            // 只显示有实际内容的节点，跳过根标题(level 0)
+            if (item.type !== 'node' || item.level === 0) return;
+
+            const div = document.createElement('div');
+            div.className = 'node-item';
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    const cb = div.querySelector('input');
+                    cb.checked = !cb.checked;
+                    toggleIndex(item.index, cb.checked);
+                }
+            };
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = checkedIndices.has(item.index);
+            checkbox.onchange = (e) => toggleIndex(item.index, e.target.checked);
+
+            // 内容区域
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'node-content';
+            
+            const textSpan = document.createElement('span');
+            textSpan.innerText = item.cleanText.replace(/<br\/>/g, ' ');
+            
+            contentDiv.appendChild(textSpan);
+
+            // 如果是同名易混淆节点（如“巩固提升”），显示父级提示
+            if (['巩固提升', '导入', '新授', '热身'].includes(item.cleanText)) {
+                const hint = document.createElement('span');
+                hint.className = 'node-parent-hint';
+                hint.innerText = item.parent ? `所属：${item.parent}` : '';
+                contentDiv.appendChild(hint);
+            }
+
+            div.appendChild(checkbox);
+            div.appendChild(contentDiv);
+            container.appendChild(div);
+        });
+    }
+
+    function toggleIndex(index, isChecked) {
+        if (isChecked) checkedIndices.add(index);
+        else checkedIndices.delete(index);
+        renderMap();
+    }
+
+    function resetSelection() {
+        checkedIndices.clear();
+        renderChecklist();
+        renderMap();
+    }
+
+    // --- 3. 渲染思维导图 ---
+    
+    const { Transformer } = window.markmap;
+    const { Markmap, loadCSS, loadJS } = window.markmap;
+    const transformer = new Transformer();
+    let mm = null;
+
+    function renderMap() {
+        const color = document.getElementById('colorPicker').value;
+        const mode = document.getElementById('styleMode').value;
+        const depth = parseInt(document.getElementById('depthRange').value);
+
+        // 重组 Markdown：遍历行，如果该行 index 在 checkedIndices 中，则加样式
+        const finalMarkdown = parsedLines.map(item => {
+            if (item.type !== 'node' || !checkedIndices.has(item.index)) {
+                return item.originalLine || item.text; // 返回原样
+            }
+
+            // 生成样式
+            let style = "";
+            if (mode === 'text') {
+                style = `color: ${color}; font-weight: 900; font-size: 1.15em;`;
+            } else if (mode === 'background') {
+                style = `background-color: ${color}40; color: #000; padding: 2px 5px; border-radius: 4px; font-weight: bold;`;
+            } else if (mode === 'border') {
+                style = `border: 2px solid ${color}; padding: 2px 6px; border-radius: 8px; color: ${color}; font-weight: bold; background: white;`;
+            }
+
+            // 替换文本内容为 HTML (保留原本的 Markdown 符号 # 或 -)
+            // 简单处理：将 cleanText 包裹
+            // 警告：这里要小心只替换文本部分，不破坏前面的 markdown 符号
+            // 利用我们解析时分离出的结构：
+            const prefix = item.originalLine.substring(0, item.originalLine.lastIndexOf(item.cleanText));
+            return `${prefix}<span style="${style}">${item.cleanText}</span>`;
+            
+        }).join('\n');
+
+        const { root, features } = transformer.transform(finalMarkdown);
+
+        if (features.styles) loadCSS(features.styles);
+        if (features.scripts) loadJS(features.scripts);
+
+        if (mm) mm.destroy();
+
+        mm = Markmap.create('#mindmap', {
+            autoFit: true,
+            fitRatio: 0.85,
+            paddingX: 20,
+            spacingHorizontal: 90,
+            spacingVertical: 12,
+            duration: 400,
+            initialExpandLevel: depth,
+        }, root);
+    }
+
+    // --- 4. 导出透明截图功能 ---
+
+    function exportImage() {
+        const element = document.querySelector('#app');
+        const btn = document.querySelector('.btn-export');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 正在生成...";
+
+        // 配置 html2canvas
+        // 关键：backgroundColor: null 确保背景透明
+        html2canvas(element, {
+            backgroundColor: null, 
+            scale: 2, // 提高清晰度 (2倍屏)
+            logging: false,
+            // 忽略 sidebar
+            ignoreElements: (el) => el.classList.contains('sidebar')
+        }).then(canvas => {
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.download = '蒙古族思维导图.png';
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            
+            btn.innerText = originalText;
+        }).catch(err => {
+            console.error(err);
+            alert("导出失败，请重试");
+            btn.innerText = originalText;
+        });
+    }
+
+    // 启动
+    init();
+
+</script>
+</body>
+</html>

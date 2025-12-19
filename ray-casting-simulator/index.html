@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正方形射线交互模拟</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; /* 防止滚动 */
+        }
+
+        .container {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 1.2rem;
+            color: #374151;
+        }
+
+        canvas {
+            border: 2px solid #1f2937; /* 正方形边界 */
+            border-radius: 4px;
+            background-color: #ffffff;
+            touch-action: none; /* 防止手机端触摸滚动 */
+            cursor: move; /* 提示可拖动 */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        
+        .highlight {
+            color: #2563eb;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>射线交互模拟器</h1>
+        
+        <!-- 画布：正方形区域 -->
+        <canvas id="canvas" width="400" height="400"></canvas>
+        
+        <div class="controls">
+            <label for="rotationRange">旋转射线:</label>
+            <input type="range" id="rotationRange" min="0" max="360" value="0">
+            <span id="rotationValue" style="width: 40px; text-align: left;">0°</span>
+        </div>
+
+        <div class="info">
+            操作提示: <span class="highlight">鼠标拖拽红点</span> 移动位置，<span class="highlight">滑动滑块</span> 旋转
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const rotationInput = document.getElementById('rotationRange');
+        const rotationValue = document.getElementById('rotationValue');
+
+        // 配置参数
+        const SQUARE_SIZE = 400; // 正方形边长
+        const RAY_COUNT = 8;     // 射线数量
+        
+        // 状态变量
+        let state = {
+            bx: SQUARE_SIZE / 2, // B点 X坐标
+            by: SQUARE_SIZE / 2, // B点 Y坐标
+            rotation: 0,         // 旋转角度 (度)
+            isDragging: false    // 是否正在拖拽
+        };
+
+        // 初始化
+        function init() {
+            // 响应滑块事件
+            rotationInput.addEventListener('input', (e) => {
+                state.rotation = parseInt(e.target.value);
+                rotationValue.textContent = state.rotation + '°';
+                draw();
+            });
+
+            // 鼠标/触摸事件监听 (用于拖拽B点)
+            canvas.addEventListener('mousedown', handleStart);
+            canvas.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleEnd);
+
+            canvas.addEventListener('touchstart', handleStart, {passive: false});
+            canvas.addEventListener('touchmove', handleMove, {passive: false});
+            window.addEventListener('touchend', handleEnd);
+
+            // 初始绘制
+            draw();
+        }
+
+        // --- 核心逻辑 ---
+
+        /**
+         * 计算射线与正方形边界的交点距离
+         * @param {number} x 起点X
+         * @param {number} y 起点Y
+         * @param {number} angleRad 弧度角
+         * @returns {number} 距离
+         */
+        function getRayLength(x, y, angleRad) {
+            // 归一化角度到 0-2PI
+            let angle = angleRad % (Math.PI * 2);
+            if (angle < 0) angle += Math.PI * 2;
+
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            
+            let distX = Infinity;
+            let distY = Infinity;
+
+            // 1. 检查垂直墙壁 (Left: x=0, Right: x=400)
+            if (Math.abs(cos) > 1e-10) { // 避免除以0
+                if (cos > 0) {
+                    // 向右，碰右墙
+                    distX = (SQUARE_SIZE - x) / cos;
+                } else {
+                    // 向左，碰左墙
+                    distX = (0 - x) / cos;
+                }
+            }
+
+            // 2. 检查水平墙壁 (Top: y=0, Bottom: y=400)
+            if (Math.abs(sin) > 1e-10) {
+                if (sin > 0) {
+                    // 向下，碰底墙
+                    distY = (SQUARE_SIZE - y) / sin;
+                } else {
+                    // 向上，碰顶墙
+                    distY = (0 - y) / sin;
+                }
+            }
+
+            // 返回最近的交点距离
+            return Math.min(distX, distY);
+        }
+
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, SQUARE_SIZE, SQUARE_SIZE);
+
+            // 绘制网格背景 (可选，增加空间感)
+            drawGrid();
+
+            // 基础角度 (弧度)
+            const baseRad = state.rotation * Math.PI / 180;
+            const stepRad = (Math.PI * 2) / RAY_COUNT;
+
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // 绘制每一条射线
+            for (let i = 0; i < RAY_COUNT; i++) {
+                const angle = baseRad + i * stepRad;
+                const dist = getRayLength(state.bx, state.by, angle);
+
+                const endX = state.bx + Math.cos(angle) * dist;
+                const endY = state.by + Math.sin(angle) * dist;
+
+                // 1. 画线
+                ctx.beginPath();
+                ctx.moveTo(state.bx, state.by);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = '#3b82f6'; // 蓝色
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 2. 画交点
+                ctx.beginPath();
+                ctx.arc(endX, endY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#1d4ed8';
+                ctx.fill();
+
+                // 3. 画长度文字
+                // 文字位置在射线中间偏终点处
+                const textDist = Math.min(dist - 20, dist * 0.7); 
+                if (textDist > 10) { // 如果距离太短就不显示文字了
+                    const textX = state.bx + Math.cos(angle) * textDist;
+                    const textY = state.by + Math.sin(angle) * textDist;
+                    
+                    // 文字背景 (为了看清楚)
+                    const text = dist.toFixed(0);
+                    const metrics = ctx.measureText(text);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(textX - metrics.width/2 - 2, textY - 6, metrics.width + 4, 12);
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(text, textX, textY);
+                }
+            }
+
+            // 绘制 B点
+            ctx.beginPath();
+            ctx.arc(state.bx, state.by, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444'; // 红色
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // B点标签
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText("B", state.bx, state.by - 15);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            const step = 50;
+            ctx.beginPath();
+            for (let x = step; x < SQUARE_SIZE; x += step) {
+                ctx.moveTo(x, 0); ctx.lineTo(x, SQUARE_SIZE);
+            }
+            for (let y = step; y < SQUARE_SIZE; y += step) {
+                ctx.moveTo(0, y); ctx.lineTo(SQUARE_SIZE, y);
+            }
+            ctx.stroke();
+        }
+
+        // --- 交互处理 ---
+
+        function getPosFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handleStart(e) {
+            const pos = getPosFromEvent(e);
+            // 检查点击位置是否在 B点 附近 (半径20px内)
+            const dx = pos.x - state.bx;
+            const dy = pos.y - state.by;
+            if (dx * dx + dy * dy < 400) { // 20*20
+                state.isDragging = true;
+                e.preventDefault(); // 防止默认行为
+            }
+        }
+
+        function handleMove(e) {
+            if (!state.isDragging) return;
+            e.preventDefault();
+            
+            const pos = getPosFromEvent(e);
+            
+            // 限制在正方形内部 (留出一点边距)
+            const padding = 5;
+            state.bx = Math.max(padding, Math.min(SQUARE_SIZE - padding, pos.x));
+            state.by = Math.max(padding, Math.min(SQUARE_SIZE - padding, pos.y));
+            
+            draw();
+        }
+
+        function handleEnd() {
+            state.isDragging = false;
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>

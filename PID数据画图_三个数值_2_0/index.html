@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页版PID监视器 (3数据 / 双Y轴)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: grid;
+            gap: 20px;
+            justify-items: center;
+        }
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        #controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #connectButton { background-color: #007bff; }
+        #disconnectButton { background-color: #dc3545; display: none; }
+        #status { font-weight: bold; }
+        #chartContainer {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="controls">
+        <button id="connectButton">1. 连接串口设备 (CP210x)</button>
+        <button id="disconnectButton">断开连接</button>
+        <span id="status">状态: 未连接</span>
+    </div>
+
+    <div class="container">
+        <div id="chartContainer">
+            <canvas id="pidChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const statusDisplay = document.getElementById('status');
+        const ctx = document.getElementById('pidChart').getContext('2d');
+
+        let port;
+        let reader;
+        let keepReading = true;
+        let lineBuffer = '';
+        
+        // --- Chart.js 图表配置 (已修改) ---
+        const MAX_DATA_POINTS = 100;
+        const chartData = {
+            labels: [],
+            datasets: [
+                {
+                    label: '目标值 (Setpoint)',
+                    borderColor: 'red',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    data: [],
+                    tension: 0.1,
+                    yAxisID: 'y-pid' // ！！指定使用左侧 Y 轴
+                },
+                {
+                    label: '实际值 (Actual)',
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    data: [],
+                    tension: 0.1,
+                    yAxisID: 'y-pid' // ！！指定使用左侧 Y 轴
+                },
+                {
+                    label: '电机占空比 (Duty Cycle)',
+                    borderColor: 'green',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    data: [],
+                    tension: 0.1,
+                    yAxisID: 'y-duty' // ！！指定使用右侧 Y 轴
+                }
+            ]
+        };
+
+        const pidChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: '时间 (采样点)' }
+                    },
+                    // ！！配置左侧 Y 轴
+                    'y-pid': {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'PID 值 (目标/实际)' },
+                        beginAtZero: false
+                    },
+                    // ！！配置右侧 Y 轴
+                    'y-duty': {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: '电机占空比' },
+                        beginAtZero: false,
+                        grid: {
+                            drawOnChartArea: false, // 右轴网格线不显示，避免混乱
+                        }
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // --- Web Serial API 逻辑 (与之前相同) ---
+
+        // 1. 点击连接按钮
+        connectButton.addEventListener('click', async () => {
+            if ('serial' in navigator) {
+                try {
+                    port = await navigator.serial.requestPort();
+                    // 波特率 9600 (与您截图一致)
+                    await port.open({ baudRate: 9600 });
+
+                    statusDisplay.textContent = '状态: 已连接';
+                    connectButton.style.display = 'none';
+                    disconnectButton.style.display = 'block';
+                    
+                    keepReading = true;
+                    readFromPort();
+                } catch (err) {
+                    statusDisplay.textContent = `连接失败: ${err.message}`;
+                }
+            } else {
+                alert('抱歉，您的浏览器不支持 Web Serial API。请使用 Google Chrome 或 Microsoft Edge。');
+            }
+        });
+
+        // 2. 点击断开按钮
+        disconnectButton.addEventListener('click', async () => {
+            keepReading = false;
+            if (reader) {
+                try {
+                    await reader.cancel();
+                    reader.releaseLock();
+                } catch (err) { console.error('释放读取器失败:', err); }
+            }
+            if (port) {
+                try {
+                    await port.close();
+                } catch (err) { console.error('关闭端口失败:', err); }
+            }
+            port = null;
+            reader = null;
+            lineBuffer = '';
+            statusDisplay.textContent = '状态: 未连接';
+            connectButton.style.display = 'block';
+            disconnectButton.style.display = 'none';
+        });
+
+        // 3. 持续从串口读取数据
+        async function readFromPort() {
+            const textDecoder = new TextDecoderStream();
+            port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    lineBuffer += value;
+                    let lines = lineBuffer.split('\n');
+                    lineBuffer = lines.pop(); 
+                    for (const line of lines) {
+                        processLine(line); // ！！处理每一行
+                    }
+                }
+            } catch (error) {
+                if (keepReading) {
+                    console.error('读取错误:', error);
+                    statusDisplay.textContent = `读取错误: ${error.message}`;
+                    await disconnectButton.click();
+                }
+            } finally {
+                if (reader) reader.releaseLock();
+            }
+        }
+
+        // 4. 处理接收到的每一行数据 (已修改)
+        function processLine(line) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return;
+
+            // ！！按逗号分割，现在需要 3 个部分
+            const parts = trimmedLine.split(',');
+            if (parts.length === 3) {
+                const val1 = parseFloat(parts[0]); // 目标
+                const val2 = parseFloat(parts[1]); // 实际
+                const val3 = parseFloat(parts[2]); // 占空比
+
+                if (!isNaN(val1) && !isNaN(val2) && !isNaN(val3)) {
+                    updateChart(val1, val2, val3); // ！！传递 3 个值
+                }
+            }
+        }
+        
+        // 5. 更新图表 (已修改)
+        let sampleCount = 0;
+        function updateChart(setpoint, actual, dutyCycle) {
+            chartData.labels.push(sampleCount++);
+            chartData.datasets[0].data.push(setpoint);  // 第1条线
+            chartData.datasets[1].data.push(actual);    // 第2条线
+            chartData.datasets[2].data.push(dutyCycle); // 第3条线
+
+            // 移除旧数据
+            if (chartData.labels.length > MAX_DATA_POINTS) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+                chartData.datasets[1].data.shift();
+                chartData.datasets[2].data.shift(); // ！！移除第3条线的数据
+            }
+
+            pidChart.update();
+        }
+
+    </script>
+
+</body>
+</html>

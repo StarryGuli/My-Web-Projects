@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>IMU 姿态可视化 - 极速版</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1e1e1e; color: #cfcfcf; font-family: 'Consolas', monospace; }
+
+        /* 侧边栏 */
+        #sidebar {
+            position: absolute; left: 0; top: 0; width: 320px; height: 100vh;
+            background-color: #252526; border-right: 1px solid #333;
+            padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; z-index: 10;
+        }
+
+        h2 { margin: 0; font-size: 18px; color: #fff; border-bottom: 2px solid #007acc; padding-bottom: 8px; }
+
+        /* 数据面板 */
+        .data-panel { background-color: #1e1e1e; border: 1px solid #3e3e42; padding: 10px; font-size: 14px; border-radius: 4px;}
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .data-value { color: #4ec9b0; font-weight: bold; min-width: 60px; text-align: right; }
+
+        /* 控制开关区域 */
+        .control-panel { background-color: #2d2d30; padding: 10px; border-radius: 4px; border: 1px solid #3e3e42; }
+        .checkbox-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 13px; cursor: pointer; }
+        .checkbox-row:hover { color: #fff; }
+        input[type="checkbox"] { cursor: pointer; transform: scale(1.2); }
+
+        /* 按钮与输入 */
+        button { width: 100%; background-color: #0e639c; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 2px; font-size: 14px; }
+        button:hover { background-color: #1177bb; }
+        button.disconnect { background-color: #a1260d; }
+        select { width: 100%; background: #3c3c3c; color: #fff; padding: 5px; border: 1px solid #555; }
+
+        /* 日志区 - 优化性能 */
+        #log {
+            flex-grow: 1; background: #000; border: 1px solid #333;
+            padding: 5px; font-size: 11px; overflow-y: hidden; /* 隐藏滚动条提升性能 */
+            white-space: pre-wrap; color: #ce9178; font-family: monospace;
+            opacity: 0.8;
+        }
+
+        #canvas-container {
+            position: absolute; left: 320px; top: 0; width: calc(100% - 320px); height: 100vh;
+            background: radial-gradient(circle at center, #2d2d30 0%, #1e1e1e 100%);
+        }
+        
+        #fps-counter { position: absolute; top: 5px; right: 5px; color: #555; font-size: 10px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>CH340 IMU Vis</h2>
+    
+    <div>
+        <label style="font-size:12px; color:#888;">波特率 (Baud Rate)</label>
+        <select id="baudRate">
+            <option value="9600">9600</option>
+            <option value="115200" selected>115200</option>
+            <option value="921600">921600</option>
+        </select>
+    </div>
+    <button id="connectBtn">🔌 连接串口</button>
+    <div id="status" style="font-size:12px; color:#ffd700;">未连接</div>
+
+    <div class="control-panel">
+        <div style="font-size:12px; color:#888; margin-bottom:5px;">轴向校准 (Axis Invert)</div>
+        <label class="checkbox-row">
+            <span>反转 Pitch (俯仰)</span>
+            <input type="checkbox" id="inv-pitch">
+        </label>
+        <label class="checkbox-row">
+            <span>反转 Roll (横滚)</span>
+            <input type="checkbox" id="inv-roll">
+        </label>
+        <label class="checkbox-row">
+            <span>反转 Yaw (偏航)</span>
+            <input type="checkbox" id="inv-yaw">
+        </label>
+    </div>
+
+    <div class="data-panel">
+        <div class="data-row"><span>Pitch:</span> <span id="val-pitch" class="data-value">0.00</span></div>
+        <div class="data-row"><span>Roll:</span> <span id="val-roll" class="data-value">0.00</span></div>
+        <div class="data-row"><span>Yaw:</span> <span id="val-yaw" class="data-value">0.00</span></div>
+    </div>
+
+    <div id="log">Waiting...</div>
+</div>
+
+<div id="canvas-container">
+    <div id="fps-counter">FPS: 60</div>
+</div>
+
+<script>
+    // ================= 1. 全局状态管理 =================
+    const state = {
+        raw: { p: 0, r: 0, y: 0 },   // 串口读到的原始值
+        target: { p: 0, r: 0, y: 0 },// 经过反转处理的目标值
+        current: { p: 0, r: 0, y: 0 },// 当前动画显示的平滑值
+        logBuffer: [], // 日志缓存
+        isConnected: false
+    };
+
+    // UI 元素缓存
+    const ui = {
+        p: document.getElementById('val-pitch'),
+        r: document.getElementById('val-roll'),
+        y: document.getElementById('val-yaw'),
+        log: document.getElementById('log'),
+        invP: document.getElementById('inv-pitch'),
+        invR: document.getElementById('inv-roll'),
+        invY: document.getElementById('inv-yaw'),
+        status: document.getElementById('status'),
+        btn: document.getElementById('connectBtn')
+    };
+
+    // ================= 2. Three.js 场景 (二战坦克) =================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(6, 5, 8);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1); // 优化高分屏性能
+    container.appendChild(renderer.domElement);
+
+    // 灯光
+    scene.add(new THREE.AmbientLight(0x555555));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 10, 5);
+    scene.add(dirLight);
+
+    // 地面网格
+    scene.add(new THREE.GridHelper(30, 30, 0x444444, 0x222222));
+    scene.add(new THREE.AxesHelper(1.5));
+
+    // 构建坦克模型
+    const tankGroup = new THREE.Group();
+    const matBody = new THREE.MeshLambertMaterial({ color: 0x556b2f }); // 军绿
+    const matTrack = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const matSteel = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.4 });
+
+    // 辅助函数：创建盒子
+    function createBox(w, h, d, mat, x, y, z) {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        mesh.position.set(x, y, z);
+        return mesh;
+    }
+
+    // 车体
+    tankGroup.add(createBox(2.2, 0.8, 3.6, matBody, 0, 0.6, 0));
+    // 炮塔
+    tankGroup.add(createBox(1.6, 0.7, 2.0, matBody, 0, 1.35, 0.2));
+    // 履带
+    tankGroup.add(createBox(0.6, 0.8, 3.8, matTrack, -1.3, 0.4, 0));
+    tankGroup.add(createBox(0.6, 0.8, 3.8, matTrack, 1.3, 0.4, 0));
+    // 炮管
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.5, 12), matSteel);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 1.35, 2.0);
+    tankGroup.add(barrel);
+    
+    scene.add(tankGroup);
+
+    // ================= 3. 动画与渲染循环 (核心优化) =================
+    const d2r = Math.PI / 180;
+    
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // 1. 读取开关状态并应用到目标角度
+        const invP = ui.invP.checked ? -1 : 1;
+        const invR = ui.invR.checked ? -1 : 1;
+        const invY = ui.invY.checked ? -1 : 1;
+
+        // 2. 简单的线性插值 (Lerp) 使动作平滑，避免数据抖动
+        // 0.1 是平滑系数，越小越平滑但延迟越高，0.2 响应快
+        state.current.p += (state.raw.p * invP - state.current.p) * 0.15;
+        state.current.r += (state.raw.r * invR - state.current.r) * 0.15;
+        state.current.y += (state.raw.y * invY - state.current.y) * 0.15;
+
+        // 3. 应用旋转 (注意 ThreeJS 的旋转顺序，通常 ZXY 或 XYZ)
+        // 映射：Pitch->X, Yaw->Y, Roll->Z (根据你的截图通常是这样，如果不对应可以改这里)
+        tankGroup.rotation.x = state.current.p * d2r; 
+        tankGroup.rotation.y = -state.current.y * d2r; // Yaw 通常需要取反适配屏幕坐标
+        tankGroup.rotation.z = state.current.r * d2r; 
+
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // ================= 4. UI 更新循环 (节流优化) =================
+    // 每 100ms 刷新一次文字显示，避免卡顿，完全不影响 3D 的 60FPS
+    setInterval(() => {
+        if (!state.isConnected) return;
+
+        // 更新数字
+        ui.p.textContent = state.raw.p.toFixed(2);
+        ui.r.textContent = state.raw.r.toFixed(2);
+        ui.y.textContent = state.raw.y.toFixed(2);
+
+        // 更新日志 (只显示最后一行)
+        if (state.logBuffer.length > 0) {
+            ui.log.textContent = state.logBuffer[state.logBuffer.length - 1] + "\n...";
+            state.logBuffer = []; // 清空缓存
+        }
+    }, 100); 
+
+
+    // ================= 5. 串口通信逻辑 =================
+    let port, reader;
+    
+    ui.btn.addEventListener('click', async () => {
+        if (state.isConnected) {
+            await reader.cancel();
+            await port.close();
+            state.isConnected = false;
+            ui.btn.textContent = "🔌 连接串口";
+            ui.btn.classList.remove('disconnect');
+            ui.status.textContent = "未连接";
+            ui.status.style.color = "#ffd700";
+            return;
+        }
+
+        try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: parseInt(document.getElementById('baudRate').value) });
+            
+            state.isConnected = true;
+            ui.btn.textContent = "❌ 断开连接";
+            ui.btn.classList.add('disconnect');
+            ui.status.textContent = "接收数据中...";
+            ui.status.style.color = "#4ec9b0";
+
+            readSerialLoop();
+        } catch (err) {
+            alert("连接错误: " + err);
+        }
+    });
+
+    async function readSerialLoop() {
+        const decoder = new TextDecoderStream();
+        const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+        reader = decoder.readable.getReader();
+        
+        let buffer = "";
+        const regex = /Pitch:([-\d.]+)\s+Roll:([-\d.]+)\s+Yaw:([-\d.]+)/;
+
+        try {
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                buffer += value;
+                
+                // 快速处理分行
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // 保留未完成的末尾
+
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    if (cleanLine.length < 5) continue;
+
+                    // 解析数据 (这里只更新数据状态，不操作 DOM)
+                    const match = cleanLine.match(regex);
+                    if (match) {
+                        state.raw.p = parseFloat(match[1]);
+                        state.raw.r = parseFloat(match[2]);
+                        state.raw.y = parseFloat(match[3]);
+                        
+                        // 将原始字符串推入显示缓存
+                        state.logBuffer.push(cleanLine);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            reader.releaseLock();
+        }
+    }
+
+    // 窗口自适应
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+</script>
+</body>
+</html>

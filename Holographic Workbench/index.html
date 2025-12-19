@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>CYBER WORKBENCH // INTERACTIVE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+    <style>
+        /* --- 赛博朋克 UI 样式 --- */
+        body {
+            margin: 0;
+            background-color: #050505;
+            color: #0ff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            user-select: none; /* 禁止选中文本 */
+        }
+        
+        /* 视频层隐藏 */
+        .input_video { display: none; }
+
+        /* 3D 渲染层 */
+        #three-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* 虚拟光标 (跟随指尖) */
+        #virtual-cursor {
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 2px solid #0ff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none; /* 让鼠标事件穿透光标本身 */
+            transition: background-color 0.1s;
+            box-shadow: 0 0 10px #0ff;
+        }
+        #virtual-cursor.active {
+            background-color: #f0f;
+            border-color: #f0f;
+            width: 15px; height: 15px; /* 捏合时变小 */
+        }
+
+        /* 交互面板 (HTML UI) */
+        .control-panel {
+            position: absolute;
+            right: 30px; top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .cyber-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #005555;
+            color: #00ffff;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.2);
+        }
+
+        /* 被手势悬停时的样式 */
+        .cyber-btn.hovered {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #0ff;
+            box-shadow: 0 0 15px #0ff;
+            transform: scale(1.1);
+        }
+
+        /* 状态栏 */
+        .hud-header {
+            position: absolute; top: 20px; left: 20px; z-index: 50;
+        }
+        h1 { margin: 0; text-shadow: 0 0 10px #0ff; }
+        .instruction { color: #888; margin-top: 5px; font-size: 14px; }
+        .status-tag { 
+            display: inline-block; margin-top: 10px; padding: 5px 10px; 
+            background: #002222; border: 1px solid #0ff; color: #0ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="virtual-cursor"></div>
+
+    <div class="hud-header">
+        <h1>WORKBENCH // V1.0</h1>
+        <div class="instruction">右手捏合: 旋转物体 | 移动至按钮捏合: 触发功能</div>
+        <div class="status-tag" id="status-display">SYSTEM_READY</div>
+    </div>
+
+    <div class="control-panel">
+        <div class="cyber-btn" id="btn-color">切换颜色 (Color)</div>
+        <div class="cyber-btn" id="btn-wire">线框模式 (Wire)</div>
+        <div class="cyber-btn" id="btn-reset">重置视图 (Reset)</div>
+    </div>
+
+    <video class="input_video"></video>
+    <canvas id="three-canvas"></canvas>
+
+<script>
+    // ================= 配置区 =================
+    const CONFIG = {
+        cameraWidth: 1280,
+        cameraHeight: 720,
+        pinchThreshold: 0.05, // 捏合触发阈值
+        rotationSpeed: 3,      // 旋转灵敏度
+        lerpFactor: 0.1        // 平滑系数
+    };
+
+    // 全局状态
+    const state = {
+        isPinching: false,
+        handX: 0, 
+        handY: 0,
+        prevHandX: 0,
+        prevHandY: 0,
+        activeButton: null // 当前悬停的按钮
+    };
+
+    // DOM 元素
+    const cursor = document.getElementById('virtual-cursor');
+    const statusDisplay = document.getElementById('status-display');
+    const buttons = document.querySelectorAll('.cyber-btn');
+
+    // ================= Three.js 场景搭建 (那个被玩弄的3D物体) =================
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.position.z = 5;
+
+    // 创建一个炫酷的二十面体作为核心物体
+    const geometry = new THREE.IcosahedronGeometry(1.5, 0);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
+    const cyberCube = new THREE.Mesh(geometry, material);
+    scene.add(cyberCube);
+
+    // 添加内发光核心
+    const coreGeo = new THREE.IcosahedronGeometry(0.8, 0);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xff00ff, opacity: 0.5, transparent: true });
+    const coreObj = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(coreObj);
+
+    // 粒子背景 (增加氛围)
+    const particlesGeo = new THREE.BufferGeometry();
+    const particlesCount = 500;
+    const posArray = new Float32Array(particlesCount * 3);
+    for(let i=0; i<particlesCount*3; i++) posArray[i] = (Math.random() - 0.5) * 20;
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particlesMat = new THREE.PointsMaterial({size: 0.05, color: 0x004444});
+    const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
+    scene.add(particlesMesh);
+
+    // ================= 交互逻辑 (让网页动起来) =================
+
+    // 按钮功能绑定
+    document.getElementById('btn-color').addEventListener('click', () => {
+        const colors = [0x00ffff, 0xff00ff, 0xffff00, 0x00ff00];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        cyberCube.material.color.setHex(randomColor);
+        coreObj.material.color.setHex(0xffffff - randomColor); // 补色
+        statusDisplay.innerText = "COMMAND :: COLOR_CHANGED";
+    });
+
+    document.getElementById('btn-wire').addEventListener('click', () => {
+        cyberCube.material.wireframe = !cyberCube.material.wireframe;
+        statusDisplay.innerText = "COMMAND :: RENDER_MODE_SWITCH";
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        cyberCube.rotation.set(0,0,0);
+        statusDisplay.innerText = "COMMAND :: SYSTEM_RESET";
+    });
+
+    // 模拟点击函数 (给手势用)
+    function triggerClick(element) {
+        // 创建一个真正的点击事件
+        element.click(); 
+        element.style.transform = "scale(0.9)"; // 点击动画
+        setTimeout(() => element.style.transform = "scale(1.1)", 150);
+    }
+
+    // ================= 手势识别核心 =================
+
+    const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+
+    hands.onResults(onResults);
+
+    const videoElement = document.getElementsByClassName('input_video')[0];
+    const cameraFeed = new Camera(videoElement, {
+        onFrame: async () => { await hands.send({image: videoElement}); },
+        width: CONFIG.cameraWidth, height: CONFIG.cameraHeight
+    });
+    cameraFeed.start();
+
+    function onResults(results) {
+        // 渲染 3D 场景
+        renderer.render(scene, camera);
+        
+        // 自转效果 (待机时)
+        if (!state.isPinching) {
+            cyberCube.rotation.y += 0.002;
+            cyberCube.rotation.x += 0.001;
+            particlesMesh.rotation.y -= 0.0005;
+        }
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+            
+            // 1. 获取关键点：食指指尖(8) 和 拇指指尖(4)
+            const indexTip = landmarks[8];
+            const thumbTip = landmarks[4];
+            
+            // 2. 映射坐标到屏幕尺寸 (注意：摄像头是镜像的，所以 X 要反转)
+            const screenX = (1 - indexTip.x) * window.innerWidth;
+            const screenY = indexTip.y * window.innerHeight;
+
+            // 平滑移动光标
+            state.handX += (screenX - state.handX) * 0.2;
+            state.handY += (screenY - state.handY) * 0.2;
+
+            // 更新光标位置
+            cursor.style.left = `${state.handX}px`;
+            cursor.style.top = `${state.handY}px`;
+
+            // 3. 计算捏合距离
+            const distance = Math.sqrt(
+                Math.pow(indexTip.x - thumbTip.x, 2) + 
+                Math.pow(indexTip.y - thumbTip.y, 2)
+            );
+
+            // 判断捏合状态
+            const isCurrentlyPinching = distance < CONFIG.pinchThreshold;
+
+            // 4. UI 交互逻辑 (碰撞检测)
+            let hoveredElement = null;
+            
+            // 检查光标是否在任何按钮上
+            buttons.forEach(btn => {
+                const rect = btn.getBoundingClientRect();
+                if (state.handX >= rect.left && state.handX <= rect.right &&
+                    state.handY >= rect.top && state.handY <= rect.bottom) {
+                    hoveredElement = btn;
+                    btn.classList.add('hovered');
+                } else {
+                    btn.classList.remove('hovered');
+                }
+            });
+
+            // 5. 状态处理机
+            if (isCurrentlyPinching) {
+                cursor.classList.add('active'); // 光标变色
+                
+                if (!state.isPinching) {
+                    // === 刚开始捏合的一瞬间 (On Press) ===
+                    state.isPinching = true;
+                    
+                    if (hoveredElement) {
+                        // 如果在按钮上捏合 -> 点击按钮
+                        triggerClick(hoveredElement);
+                        statusDisplay.innerText = "INTERACTION :: CLICK";
+                        statusDisplay.style.color = "#f0f";
+                    } else {
+                        // 如果在空地捏合 -> 抓住 3D 物体
+                        statusDisplay.innerText = "INTERACTION :: OBJECT_LOCKED";
+                        statusDisplay.style.color = "#0ff";
+                    }
+                } else {
+                    // === 保持捏合状态 (On Drag) ===
+                    // 如果没按按钮，就旋转物体
+                    if (!hoveredElement) {
+                        const deltaX = (indexTip.x - state.prevHandX) * CONFIG.rotationSpeed;
+                        const deltaY = (indexTip.y - state.prevHandY) * CONFIG.rotationSpeed;
+                        
+                        cyberCube.rotation.y -= deltaX * 5; // X轴移动控制Y轴旋转
+                        cyberCube.rotation.x -= deltaY * 5;
+                    }
+                }
+            } else {
+                // === 松开 (On Release) ===
+                cursor.classList.remove('active');
+                state.isPinching = false;
+                statusDisplay.style.color = "#0ff";
+                if (!hoveredElement) statusDisplay.innerText = "SYSTEM_READY :: WAITING";
+            }
+
+            // 保存上一帧坐标
+            state.prevHandX = indexTip.x;
+            state.prevHandY = indexTip.y;
+
+        } else {
+            // 没有检测到手
+            statusDisplay.innerText = "NO_INPUT :: SCANNING";
+        }
+    }
+
+    // 窗口自适应
+    window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+</body>
+</html>

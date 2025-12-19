@@ -3,23 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的 HTML 应用仓库</title>
+    <title>Dev.Lab | 个人开发仓库</title>
     <style>
-        /* --- 样式部分保持不变 --- */
-        :root { --bg-color: #f5f5f7; --card-bg: #ffffff; --primary-color: #007aff; --text-main: #1d1d1f; --text-sub: #86868b; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; line-height: 1.6; }
-        .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
-        header { text-align: center; margin-bottom: 50px; }
-        header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
-        header p { color: var(--text-sub); font-size: 1.2rem; }
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
-        .app-card { background: var(--card-bg); border-radius: 16px; padding: 25px; text-decoration: none; color: inherit; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: flex-start; }
-        .app-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .app-icon { font-size: 3rem; margin-bottom: 15px; background: #f0f0f0; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
-        .app-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
-        .app-desc { color: var(--text-sub); font-size: 0.95rem; }
-        footer { text-align: center; margin-top: 60px; color: var(--text-sub); font-size: 0.9rem; }
-        footer a { color: var(--primary-color); text-decoration: none; }
+        /* --- 全局变量与重置 --- */
+        :root {
+            --bg-color: #0f172a;       /* 深蓝黑背景 */
+            --card-bg: #1e293b;        /* 卡片背景 */
+            --text-primary: #f8fafc;   /* 主文字 */
+            --text-secondary: #94a3b8; /* 副文字 */
+            --accent-cyan: #06b6d4;    /* 青色光效 */
+            --accent-purple: #8b5cf6;  /* 紫色光效 */
+            --accent-green: #10b981;   /* 绿色光效 */
+        }
+
+        body {
+            font-family: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace; /* 使用等宽字体增加科技感 */
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.1) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* --- 布局容器 --- */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        /* --- 头部设计 --- */
+        header {
+            margin-bottom: 60px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            padding-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(90deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* 模拟终端光标闪烁 */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- 网格布局 --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); /* 响应式 */
+            gap: 24px;
+        }
+
+        /* --- 卡片设计 (核心) --- */
+        .card {
+            background: rgba(30, 41, 59, 0.7); /* 半透明 */
+            backdrop-filter: blur(10px);       /* 毛玻璃 */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 24px;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 悬停效果 */
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.15); /* 青色光晕 */
+        }
+        
+        /* 针对不同类型的项目给不同的光晕色 (可选) */
+        .card.type-algo:hover { border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 30px rgba(139, 92, 246, 0.15); }
+        .card.type-ui:hover { border-color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15); }
+
+        /* 卡片顶部的图标行 */
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .arrow-icon {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover .arrow-icon {
+            color: var(--text-primary);
+            transform: translate(4px, -4px); /* 箭头向右上飞 */
+        }
+
+        /* 文字内容 */
+        .card h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .card p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 底部标签 */
+        .tags {
+            margin-top: 20px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            padding-top: 30px;
+        }
+        
+        footer a { color: var(--text-secondary); }
+
     </style>
 </head>
 <body>
@@ -27,28 +178,136 @@
     <div class="container">
         
         <header>
-            <h1>我的代码实验室 🛠️</h1>
-            <p>嵌入式与姿态解算可视化展示</p>
+            <h1>MY REPOSITORY</h1>
+            <div class="subtitle">
+                <span>root@github:~/projects $</span>
+                <span class="cursor">ls -al</span>
+            </div>
         </header>
 
-        <div class="app-grid">
+        <div class="grid">
 
-            <a href="mpu6050_viewer/" class="app-card">
-                <div class="app-icon">📊</div>
-                <div class="app-title">MPU6050 可视化</div>
-                <div class="app-desc">MPU6050 传感器的实时数据波形与姿态展示工具。</div>
+            <a href="CyberHand/" class="card type-algo">
+                <div class="card-top">
+                    <div class="icon-box">🦾</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>CyberHand</h2>
+                <p>赛博机械手控制与状态可视化界面，包含舵机控制逻辑。</p>
+                <div class="tags">
+                    <span class="tag">Robotics</span>
+                    <span class="tag">Control</span>
+                </div>
             </a>
 
-            <a href="quad_ahrs.html/" class="app-card">
-                <div class="app-icon">🚁</div>
-                <div class="app-title">四轴姿态解算 (AHRS)</div>
-                <div class="app-desc">四轴飞行器的姿态估计算法演示与仿真。</div>
+            <a href="mpu6050_viewer/" class="card type-ui">
+                <div class="card-top">
+                    <div class="icon-box">📊</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>MPU6050 Viewer</h2>
+                <p>实时读取并显示六轴传感器数据，支持波形绘制与姿态3D显示。</p>
+                <div class="tags">
+                    <span class="tag">WebSerial</span>
+                    <span class="tag">Visualization</span>
+                </div>
+            </a>
+
+            <a href="Holographic Workbench/" class="card type-algo">
+                <div class="card-top">
+                    <div class="icon-box">💠</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>Holographic Workbench</h2>
+                <p>未来风格的全息工作台概念验证，探索空间UI交互设计。</p>
+                <div class="tags">
+                    <span class="tag">3D UI</span>
+                    <span class="tag">Concept</span>
+                </div>
+            </a>
+
+            <a href="Interactive Lidar App/" class="card type-ui">
+                <div class="card-top">
+                    <div class="icon-box">📡</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>Interactive Lidar</h2>
+                <p>交互式激光雷达点云数据展示与分析工具。</p>
+                <div class="tags">
+                    <span class="tag">Point Cloud</span>
+                    <span class="tag">Lidar</span>
+                </div>
+            </a>
+
+            <a href="ray-casting-simulator/" class="card type-algo">
+                <div class="card-top">
+                    <div class="icon-box">🔦</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>Ray Casting Simulator</h2>
+                <p>2D 光线投射算法仿真，模拟视野与阴影计算。</p>
+                <div class="tags">
+                    <span class="tag">Algorithm</span>
+                    <span class="tag">Geometry</span>
+                </div>
+            </a>
+
+            <a href="IMU Dashboard V4/" class="card type-ui">
+                <div class="card-top">
+                    <div class="icon-box">🧭</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>IMU Dashboard V4</h2>
+                <p>第四代惯性导航系统仪表盘，优化了数据流处理效率。</p>
+                <div class="tags">
+                    <span class="tag">Instrument</span>
+                    <span class="tag">V4.0</span>
+                </div>
+            </a>
+            
+             <a href="Web Audio 频谱分析仪/" class="card type-ui">
+                <div class="card-top">
+                    <div class="icon-box">🎵</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>Audio Spectrum</h2>
+                <p>Web Audio API 实时音频频谱分析仪。</p>
+                <div class="tags">
+                    <span class="tag">Audio</span>
+                    <span class="tag">DSP</span>
+                </div>
+            </a>
+
+             <a href="NEO-INTERFACE HUD/" class="card type-algo">
+                <div class="card-top">
+                    <div class="icon-box">👁️</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>NEO-INTERFACE HUD</h2>
+                <p>科幻风格的抬头显示 (HUD) 界面组件库。</p>
+                <div class="tags">
+                    <span class="tag">Cyberpunk</span>
+                    <span class="tag">HUD</span>
+                </div>
+            </a>
+            
+             <a href="quad_ahrs.html/" class="card">
+                <div class="card-top">
+                    <div class="icon-box">🚁</div>
+                    <div class="arrow-icon">↗</div>
+                </div>
+                <h2>Quad AHRS</h2>
+                <p>四轴飞行器姿态参考系统解算仿真。</p>
+                <div class="tags">
+                    <span class="tag">Physics</span>
+                    <span class="tag">Flight</span>
+                </div>
             </a>
 
         </div>
 
         <footer>
-            <p>© 2024 GitHub Pages | <a href="https://github.com/">访问 GitHub 仓库</a></p>
+            <p>© 2025 Lab Repository. Built with pure HTML/CSS.</p>
         </footer>
 
     </div>

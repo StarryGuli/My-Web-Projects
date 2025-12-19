@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页版PID监视器 (Web Serial)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: grid;
+            gap: 20px;
+            justify-items: center;
+        }
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        #controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #connectButton { background-color: #007bff; }
+        #disconnectButton { background-color: #dc3545; display: none; }
+        #status { font-weight: bold; }
+        #chartContainer {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="controls">
+        <button id="connectButton">1. 连接串口设备</button>
+        <button id="disconnectButton">断开连接</button>
+        <span id="status">状态: 未连接</span>
+    </div>
+
+    <div class="container">
+        <div id="chartContainer">
+            <canvas id="pidChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const statusDisplay = document.getElementById('status');
+        const ctx = document.getElementById('pidChart').getContext('2d');
+
+        let port;
+        let reader;
+        let keepReading = true;
+        let lineBuffer = ''; // 用于处理分块的数据
+        
+        // --- Chart.js 图表配置 ---
+        const MAX_DATA_POINTS = 100; // 图表上显示的最大数据点
+        const chartData = {
+            labels: [],
+            datasets: [
+                {
+                    label: '目标值 (Setpoint)',
+                    borderColor: 'red',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    data: [],
+                    tension: 0.1
+                },
+                {
+                    label: '实际值 (Actual)',
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    data: [],
+                    tension: 0.1
+                }
+            ]
+        };
+
+        const pidChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear', // 使用线性轴作为采样点
+                        title: { display: true, text: '时间 (采样点)' }
+                    },
+                    y: {
+                        title: { display: true, text: '数值' },
+                        beginAtZero: false // Y轴不一定从0开始
+                    }
+                },
+                animation: false // 关闭动画以提高实时性能
+            }
+        });
+
+        // --- Web Serial API 逻辑 ---
+
+        // 1. 点击连接按钮
+        connectButton.addEventListener('click', async () => {
+            if ('serial' in navigator) {
+                try {
+                    // 提示用户选择一个串口
+                    port = await navigator.serial.requestPort();
+                    
+                    // 打开串口，波特率与您截图中一致 (9600)
+                    await port.open({ baudRate: 9600 });
+
+                    statusDisplay.textContent = '状态: 已连接';
+                    connectButton.style.display = 'none';
+                    disconnectButton.style.display = 'block';
+                    
+                    keepReading = true;
+                    readFromPort(); // 开始读取数据
+                } catch (err) {
+                    statusDisplay.textContent = `连接失败: ${err.message}`;
+                }
+            } else {
+                alert('抱歉，您的浏览器不支持 Web Serial API。请使用 Google Chrome 或 Microsoft Edge。');
+            }
+        });
+
+        // 2. 点击断开按钮
+        disconnectButton.addEventListener('click', async () => {
+            keepReading = false;
+            
+            // 释放读取器
+            if (reader) {
+                try {
+                    await reader.cancel();
+                    reader.releaseLock();
+                } catch (err) {
+                    console.error('释放读取器失败:', err);
+                }
+            }
+            
+            // 关闭串口
+            if (port) {
+                try {
+                    await port.close();
+                } catch (err) {
+                    console.error('关闭端口失败:', err);
+                }
+            }
+
+            port = null;
+            reader = null;
+            lineBuffer = '';
+
+            statusDisplay.textContent = '状态: 未连接';
+            connectButton.style.display = 'block';
+            disconnectButton.style.display = 'none';
+        });
+
+        // 3. 持续从串口读取数据
+        async function readFromPort() {
+            // 使用 TextDecoder 将 Uint8Array 转换为字符串
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        break; // 允许循环退出
+                    }
+                    
+                    // value 是一个字符串块，可能不包含完整的行
+                    lineBuffer += value;
+                    
+                    // 按换行符分割
+                    let lines = lineBuffer.split('\n');
+                    
+                    // 最后一部分可能是不完整的，保留在缓冲区中
+                    lineBuffer = lines.pop(); 
+                    
+                    // 处理所有完整的行
+                    for (const line of lines) {
+                        processLine(line);
+                    }
+                }
+            } catch (error) {
+                if (keepReading) { // 只有在不是主动断开时才报告错误
+                    console.error('读取错误:', error);
+                    statusDisplay.textContent = `读取错误: ${error.message}`;
+                    await disconnectButton.click(); // 自动断开
+                }
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        // 4. 处理接收到的每一行数据
+        function processLine(line) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return; // 忽略空行
+
+            const parts = trimmedLine.split(',');
+            if (parts.length === 2) {
+                const val1 = parseFloat(parts[0]);
+                const val2 = parseFloat(parts[1]);
+
+                if (!isNaN(val1) && !isNaN(val2)) {
+                    // console.log(`收到数据: ${val1}, ${val2}`);
+                    updateChart(val1, val2);
+                }
+            }
+        }
+        
+        // 5. 更新图表
+        let sampleCount = 0;
+        function updateChart(setpoint, actual) {
+            chartData.labels.push(sampleCount++);
+            chartData.datasets[0].data.push(setpoint);
+            chartData.datasets[1].data.push(actual);
+
+            // 保持图表上只有 MAX_DATA_POINTS 个点
+            if (chartData.labels.length > MAX_DATA_POINTS) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+                chartData.datasets[1].data.shift();
+            }
+
+            pidChart.update();
+        }
+
+    </script>
+
+</body>
+</html>

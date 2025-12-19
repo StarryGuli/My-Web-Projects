@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Education Roadmap: Mechanical Engineering Strategy</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- Google Fonts (Material Look) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- 
+    Palette Name: Cyber-Vibrant (Custom Selection based on "Energetic & Playful")
+    Colors:
+    - Primary: #7000FF (Deep Purple)
+    - Secondary: #00D4FF (Electric Cyan)
+    - Accent: #FF00D4 (Hot Pink)
+    - Background: #F3F4F6 (Cool Gray)
+    - Surface: #FFFFFF (White)
+    -->
+
+    <!-- Source Material Analysis & Plan Summary -->
+    <!--
+    PLAN SUMMARY:
+    1.  **User Constraint Analysis:** The user has a budget of 20-30w RMB, which is tight for traditional Anglosphere master's degrees (US/Aus). The major is Mechanical Electronic Engineering. The goal is immigration.
+    2.  **Narrative:** "The Strategic Engineer". We will bypass the "Prestige Trap" and focus on "ROI" (Return on Investment).
+    3.  **Visualization 1 (Scatter Plot):** The "Opportunity Matrix". Maps Cost (X) vs. Immigration Ease (Y). Shows Ireland and Germany as the sweet spots.
+    4.  **Visualization 2 (Stacked Bar):** Budget Breakdown. Detailed cost analysis of the viable options vs. the 30w cap.
+    5.  **Visualization 3 (Radar Chart):** Skill Demand. Shows what these specific countries look for in a Mechatronics grad (Language vs. Tech Skills).
+    6.  **Visualization 4 (Process Flow - HTML):** Sophomore to Departure timeline.
+    -->
+
+    <!-- Visualization & Content Choices:
+    1. Opportunity Matrix -> Goal: Relationships -> Scatter Plot (Chart.js) -> Shows trade-off between cost and immigration potential. NO SVG.
+    2. Budget Breakdown -> Goal: Compare -> Stacked Bar (Chart.js) -> Breaks down Tuition vs Living to show feasibility. NO SVG.
+    3. Destination Cards -> Goal: Inform -> HTML Cards -> Detailed breakdown of top 3 countries.
+    4. Skills Radar -> Goal: Compare -> Radar Chart (Chart.js) -> Visualizes "Soft vs Hard" skills needed for private uni students. NO SVG.
+    5. Action Timeline -> Goal: Change/Process -> Structured HTML/CSS -> Linear progression guide. NO SVG.
+    -->
+
+    <!-- CONFIRMATION: NEITHER Mermaid JS NOR SVG were used anywhere in the output. -->
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #F3F4F6;
+            color: #1F2937;
+        }
+        
+        /* Chart Container Strategy: Responsive, constrained height/width, centered */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width to prevent stretching */
+            height: 400px; /* Base height */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #7000FF, #00D4FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-shadow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Utility for Diagram Nodes (No SVG) */
+        .step-node {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #7000FF, #FF00D4);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header Section -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Global<span class="text-[#00D4FF]">Edu</span> Strategy</h1>
+            <div class="hidden md:flex space-x-6 text-sm font-medium text-gray-500">
+                <span>Budget: 20-30w RMB</span>
+                <span>Major: Mechatronics</span>
+                <span>Goal: Immigration</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
+
+        <!-- Introduction / Hook -->
+        <section class="text-center space-y-4">
+            <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
+                Engineering Your Future: <br>
+                <span class="gradient-text">High Value, Low Cost Pathways</span>
+            </h2>
+            <p class="max-w-3xl mx-auto text-xl text-gray-600">
+                For a Sophomore in Mechatronics (Mechanical Electronic Engineering) with a 20-30w RMB budget, the traditional paths (US/Australia) are financially risky. 
+                To secure a future abroad and potential immigration, we must pivot from "Buying a Degree" to "Investing in a Market Gap". 
+                This strategic roadmap identifies high-tech hubs where your engineering skills define your worth, not just your wallet.
+            </p>
+        </section>
+
+        <!-- Section 1: The Global Landscape (Scatter Plot) -->
+        <section>
+            <div class="border-l-4 border-[#7000FF] pl-4 mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">The "Sweet Spot" Matrix</h3>
+                <p class="text-gray-600 mt-2">
+                    We compared popular study destinations based on Total Cost (Tuition + Living) vs. Immigration Difficulty. 
+                    <strong>Goal:</strong> Find countries in the top-left quadrant (Low Cost, High Immigration Opportunity).
+                </p>
+            </div>
+            
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <div class="chart-container">
+                    <canvas id="matrixChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                        <span class="font-bold text-[#7000FF]">Ireland:</span> The best English-speaking balance. 1-year master's keeps costs down, 2-year post-study work visa.
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                        <span class="font-bold text-[#00D4FF]">Germany:</span> Lowest cost. Requires adaptability (English programs exist, but German helps daily life). Huge demand for Mechatronics.
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                        <span class="font-bold text-[#FF00D4]">Canada (College):</span> The immigration specialist. Opt for PG-Dip/College routes to fit budget. High probability of PR.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Budget Reality Check (Stacked Bar) -->
+        <section>
+            <div class="border-l-4 border-[#00D4FF] pl-4 mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Financial Feasibility Analysis</h3>
+                <p class="text-gray-600 mt-2">
+                    Can 30w RMB cover it? Here is the breakdown of Total Cost for a Master's degree (or equivalent). 
+                    Note how the UK and Australia breach the budget, while Ireland and European English-taught programs fit comfortably.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <div class="chart-container">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+                <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-100 text-yellow-800 text-sm">
+                    <strong>Budget Alert:</strong> Your 30w RMB limit is strictly hard-capped. 
+                    In Ireland/Germany, this covers tuition + basic living. In the UK, you would likely need part-time work immediately to survive. 
+                    In Australia/USA, this covers less than one semester of tuition + living.
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Deep Dive into Recommendations -->
+        <section>
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Top 3 Recommended Pathways</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Ireland Card -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden flex flex-col">
+                    <div class="bg-[#00D4FF] h-2"></div>
+                    <div class="p-6 flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-xl font-bold text-gray-900">Ireland &#x1F340;</h4>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">Top Pick</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">
+                            The "Silicon Valley of Europe". Home to Intel, Pfizer, and massive automation needs.
+                        </p>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex items-start"><span class="mr-2 text-[#00D4FF]">&#x2714;</span> <strong>Lang:</strong> Native English.</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#00D4FF]">&#x2714;</span> <strong>Cost:</strong> ~25w RMB (1 Year).</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#00D4FF]">&#x2714;</span> <strong>Visa:</strong> 2 Years Post-Grad.</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#00D4FF]">&#x2714;</span> <strong>Schools:</strong> UCD, Trinity, DCU, Limerick.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Germany Card -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden flex flex-col">
+                    <div class="bg-[#7000FF] h-2"></div>
+                    <div class="p-6 flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-xl font-bold text-gray-900">Germany &#x1F1E9;&#x1F1EA;</h4>
+                            <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Budget King</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Engineering powerhouse. Many public unis have 0 tuition, only semester fees.
+                        </p>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex items-start"><span class="mr-2 text-[#7000FF]">&#x2714;</span> <strong>Lang:</strong> English programs avail.</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#7000FF]">&#x2714;</span> <strong>Cost:</strong> ~12-15w RMB/year (Living only).</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#7000FF]">&#x2714;</span> <strong>Req:</strong> APS Certificate is mandatory.</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#7000FF]">&#x2714;</span> <strong>Industry:</strong> Automotive & Robotics (Siemens, BMW).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Canada Card -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden flex flex-col">
+                    <div class="bg-[#FF00D4] h-2"></div>
+                    <div class="p-6 flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-xl font-bold text-gray-900">Canada &#x1F1E8;&#x1F1E6;</h4>
+                            <span class="bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded-full">Immigration Focus</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Opt for a "Post-Grad Certificate" at a College, not a Uni Master's, to fit budget.
+                        </p>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex items-start"><span class="mr-2 text-[#FF00D4]">&#x2714;</span> <strong>Route:</strong> College (Practical/Hands-on).</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#FF00D4]">&#x2714;</span> <strong>Cost:</strong> ~20-25w RMB.</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#FF00D4]">&#x2714;</span> <strong>Visa:</strong> PGWP (Open Work Permit).</li>
+                            <li class="flex items-start"><span class="mr-2 text-[#FF00D4]">&#x2714;</span> <strong>Focus:</strong> Non-GTA areas (Alberta/Atlantic) cheaper.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Skills Gap Analysis (Radar Chart) -->
+        <section>
+            <div class="border-l-4 border-[#FF00D4] pl-4 mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">The "Private Uni" Strategy</h3>
+                <p class="text-gray-600 mt-2">
+                    Coming from a private university (民办本科), you cannot rely on school branding. 
+                    Western employers value <strong>competence</strong>. This radar chart shows where you must focus your energy during Sophomore and Junior years.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <div class="chart-container">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#00D4FF]">
+                        <h5 class="font-bold text-gray-900">1. GPA is King (80/100+)</h5>
+                        <p class="text-sm text-gray-600">
+                            For Germany and Ireland, academic transcript is the primary filter. Raise your GPA now. Retake courses if necessary.
+                        </p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-[#7000FF]">
+                        <h5 class="font-bold text-gray-900">2. Portfolio over Prestige</h5>
+                        <p class="text-sm text-gray-600">
+                            Mechanical/Electronic Engineering is tangible. Build robots, code PLCs, design PCBs. Document these projects on GitHub or a personal site. This offsets the "Private Uni" label.
+                        </p>
+                    </div>
+                    <div class="bg-pink-50 p-4 rounded-lg border-l-4 border-[#FF00D4]">
+                        <h5 class="font-bold text-gray-900">3. English (IELTS 6.5)</h5>
+                        <p class="text-sm text-gray-600">
+                            Start preparing now. No language scores = No offer. Aim for 6.5 overall with no band less than 6.0.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: The Action Timeline (Process Flow) -->
+        <section class="bg-gray-800 rounded-2xl p-8 text-white">
+            <h3 class="text-2xl font-bold mb-8 text-center">Sophomore to Departure: Action Plan</h3>
+            
+            <div class="relative">
+                <!-- Vertical Line for Mobile / Horizontal for Desktop -->
+                <div class="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-gray-600 transform -translate-y-1/2 z-0"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+                    
+                    <!-- Step 1 -->
+                    <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col items-center text-center">
+                        <div class="step-node mb-4 text-xl">1</div>
+                        <h4 class="font-bold text-[#00D4FF] mb-2">Year 2 (Now)</h4>
+                        <p class="text-sm text-gray-300">Maximize GPA. Join robotics clubs. Start learning basic German (if choosing Germany).</p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col items-center text-center">
+                        <div class="step-node mb-4 text-xl">2</div>
+                        <h4 class="font-bold text-[#FF00D4] mb-2">Year 3</h4>
+                        <p class="text-sm text-gray-300">IELTS Prep. Internships (crucial for resume). Complete tangible engineering projects.</p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col items-center text-center">
+                        <div class="step-node mb-4 text-xl">3</div>
+                        <h4 class="font-bold text-[#7000FF] mb-2">Year 4 (Sem 1)</h4>
+                        <p class="text-sm text-gray-300">Apply early (Rolling basis). Prepare APS (Germany). Secure recommendation letters.</p>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col items-center text-center">
+                        <div class="step-node mb-4 text-xl">4</div>
+                        <h4 class="font-bold text-white mb-2">Graduation</h4>
+                        <p class="text-sm text-gray-300">Visa application. Flight booking. Departure. Total estimated spend so far: ~2w RMB (Apps/Tests).</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-12 border-t border-gray-200 pt-8 text-center text-gray-500 text-sm">
+            <p>Generated for Mechanical Electronic Engineering Student | Focus: Budget & Immigration</p>
+            <p class="mt-2">Currency estimates based on 2024 exchange rates. Always verify official university tuition fees.</p>
+        </footer>
+
+    </main>
+
+    <!-- JavaScript for Charts -->
+    <script>
+        // --- Helper Function: String Wrapping for Labels > 16 chars ---
+        function wrapLabel(str, maxLen = 16) {
+            if (str.length <= maxLen) return str;
+            const words = str.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine + " " + words[i]).length < maxLen) {
+                    currentLine += " " + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // --- Common Chart Options ---
+        Chart.defaults.font.family = "'Roboto', sans-serif";
+        Chart.defaults.color = '#4B5563';
+        
+        const tooltipConfig = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels ? item.chart.data.labels[item.dataIndex] : ''; // Fallback for scatter
+                    if(!label && item.raw && item.raw.country) label = item.raw.country; // For scatter custom data
+                    
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        // --- Chart 1: The Sweet Spot Matrix (Scatter Plot) ---
+        // X: Cost (Lower is better, but plotting numerical value), Y: Immigration Difficulty (Higher is Harder)
+        // Wait... easier to read: X = Cost, Y = Ease of Immigration (Higher is Easier)
+        const ctxMatrix = document.getElementById('matrixChart').getContext('2d');
+        const matrixChart = new Chart(ctxMatrix, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Countries',
+                    data: [
+                        { x: 55, y: 2, country: 'USA (University)', r: 12 },
+                        { x: 45, y: 3, country: 'Australia', r: 10 },
+                        { x: 38, y: 3, country: 'UK', r: 10 },
+                        { x: 25, y: 8, country: 'Ireland', r: 15 },       // Target
+                        { x: 22, y: 9, country: 'Canada (College)', r: 14 }, // Target
+                        { x: 14, y: 7, country: 'Germany (Public)', r: 15 }, // Target
+                        { x: 28, y: 6, country: 'New Zealand', r: 8 },
+                        { x: 20, y: 5, country: 'Nordics', r: 8 }
+                    ],
+                    backgroundColor: function(context) {
+                        const val = context.raw;
+                        if (!val) return '#9CA3AF';
+                        // Highlight targets (Cost < 30 AND Ease > 6)
+                        if (val.x <= 30 && val.y >= 7) return '#00D4FF'; 
+                        if (val.x > 30) return '#FF00D4'; // Over budget
+                        return '#7000FF';
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Total Cost per Year (10k RMB)' },
+                        min: 0,
+                        max: 60,
+                        grid: { color: '#E5E7EB' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Ease of Staying (Score 1-10)' },
+                        min: 0,
+                        max: 10,
+                        grid: { color: '#E5E7EB' }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw.country + ': ' + context.raw.x + 'w RMB';
+                            }
+                        }
+                    },
+                    legend: { display: false },
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                xMin: 30,
+                                xMax: 30,
+                                borderColor: 'rgb(255, 99, 132)',
+                                borderWidth: 2,
+                                label: { content: 'Max Budget (30w)', enabled: true }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- Chart 2: Budget Breakdown (Stacked Bar) ---
+        const ctxBudget = document.getElementById('budgetChart').getContext('2d');
+        const budgetLabels = ['USA (Master)', 'UK (Master)', 'Australia (Master)', 'Ireland (Master)', 'Canada (College)', 'Germany (Public)'];
+        const processedBudgetLabels = budgetLabels.map(l => wrapLabel(l));
+
+        const budgetChart = new Chart(ctxBudget, {
+            type: 'bar',
+            data: {
+                labels: processedBudgetLabels,
+                datasets: [
+                    {
+                        label: 'Tuition (RMB)',
+                        data: [35, 20, 22, 12, 10, 0.5], // Germany has semester fees
+                        backgroundColor: '#7000FF'
+                    },
+                    {
+                        label: 'Living Costs (RMB)',
+                        data: [15, 15, 18, 12, 10, 11],
+                        backgroundColor: '#00D4FF'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: { 
+                        stacked: true,
+                        title: { display: true, text: 'Total Cost (10k RMB)' },
+                        grid: { color: '#F3F4F6' }
+                    }
+                },
+                plugins: {
+                    tooltip: tooltipConfig,
+                    legend: { position: 'top' }
+                }
+            }
+        });
+
+        // --- Chart 3: Skills Gap (Radar Chart) ---
+        const ctxSkills = document.getElementById('skillsChart').getContext('2d');
+        const skillsChart = new Chart(ctxSkills, {
+            type: 'radar',
+            data: {
+                labels: ['GPA (High Grades)', 'English (IELTS)', 'Project Portfolio', 'Internship Exp', 'University Brand'],
+                datasets: [{
+                    label: 'Employer/Admission Value',
+                    data: [85, 90, 95, 80, 40], // Uni Brand is low importance for tech jobs abroad vs portfolio
+                    fill: true,
+                    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                    borderColor: '#00D4FF',
+                    pointBackgroundColor: '#00D4FF',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#00D4FF'
+                }, {
+                    label: 'Typical Student Focus',
+                    data: [70, 60, 40, 30, 90], // Students often worry too much about brand and not enough about skills
+                    fill: true,
+                    backgroundColor: 'rgba(255, 0, 212, 0.2)',
+                    borderColor: '#FF00D4',
+                    pointBackgroundColor: '#FF00D4',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#FF00D4'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                elements: {
+                    line: { borderWidth: 3 }
+                },
+                scales: {
+                    r: {
+                        angleLines: { display: true },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    tooltip: tooltipConfig
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

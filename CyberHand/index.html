@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>CyberHand Core</title>
+    <style>
+        /* 炫酷的赛博朋克基础样式 */
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 视频层隐藏，只显示处理后的 Canvas */
+        .input_video { display: none; }
+
+        .output_canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* 镜像翻转，更符合直觉 */
+        }
+
+        /* HUD 界面层 */
+        .hud-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none; /* 让鼠标穿透 */
+        }
+
+        h1 {
+            text-shadow: 0 0 10px #0f0;
+            margin: 0;
+            letter-spacing: 2px;
+        }
+
+        .status {
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="hud-overlay">
+            <h1>CYBER::HAND // SYSTEM_READY</h1>
+            <div class="status" id="status-text">初始化神经连接...</div>
+        </div>
+
+        <video class="input_video"></video>
+        <canvas class="output_canvas"></canvas>
+    </div>
+
+    <script>
+        const videoElement = document.getElementsByClassName('input_video')[0];
+        const canvasElement = document.getElementsByClassName('output_canvas')[0];
+        const canvasCtx = canvasElement.getContext('2d');
+        const statusText = document.getElementById('status-text');
+
+        // 设置 Canvas 尺寸
+        function resizeCanvas() {
+            canvasElement.width = window.innerWidth;
+            canvasElement.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function onResults(results) {
+            // 每一帧的绘制逻辑
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // 可以在这里绘制原始视频作为背景，或者保持黑色背景只画线
+            // canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                statusText.innerText = "目标锁定 :: HAND_DETECTED";
+                statusText.style.color = "#f0f"; // 变色
+
+                for (const landmarks of results.multiHandLandmarks) {
+                    // 绘制赛博风格的连接线
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+                                   {color: '#00ffff', lineWidth: 4}); // 青色连线
+                    
+                    // 绘制关节节点
+                    drawLandmarks(canvasCtx, landmarks, {
+                        color: '#ff00ff', // 洋红节点
+                        lineWidth: 2,
+                        radius: 4
+                    });
+                }
+            } else {
+                statusText.innerText = "扫描中... :: SCANNING";
+                statusText.style.color = "#0ff";
+            }
+            canvasCtx.restore();
+        }
+
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
+    </script>
+</body>
+</html>

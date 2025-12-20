@@ -7,28 +7,31 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- 🎨 样式保持不变 (使用最美观的 v6.3/v8.0 样式) --- */
+        /* --- 🎨 核心变量 --- */
         :root {
             --bg-deep: #030712;
-            --glass-bg: rgba(30, 41, 59, 0.4);
+            --glass-bg: rgba(30, 41, 59, 0.6);
             --glass-border: rgba(255, 255, 255, 0.08);
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
             --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%);
+            
             --icon-size-grid: 46px; --icon-font-grid: 1.5rem;
             --icon-size-list: 24px; --icon-font-list: 0.85rem;
         }
+
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; background-color: var(--bg-deep); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; min-height: 100vh; }
         #star-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 0%, #172554 0%, #030712 60%); }
         .container { max-width: 1280px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
-        
-        /* Header & Controls */
+
+        /* Header */
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
         .brand-group h1 { font-size: 2.2rem; margin: 0; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .brand-subtitle { font-size: 0.9rem; color: var(--text-sub); margin-top: 4px; }
         .header-controls { display: flex; gap: 10px; align-items: center; }
-        
+
+        /* Buttons & Badges */
         .github-badge { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 50px; text-decoration: none; color: var(--text-main); font-size: 0.8rem; transition: 0.3s; }
         .github-badge:hover { background: rgba(255,255,255,0.08); }
         .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.03); color: var(--text-sub); cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
@@ -40,15 +43,17 @@
         .search-input:focus { outline: none; border-color: #a78bfa; background: rgba(30, 41, 59, 0.8); box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1); }
         .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 0.9rem; pointer-events: none;}
 
-        /* Grid/List View */
+        /* View Modes */
         .grid { display: grid; gap: 20px; transition: 0.3s; }
-        /* Grid */
+        
+        /* Grid View */
         .grid.view-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .grid.view-grid .card { flex-direction: column; text-align: left; }
         .grid.view-grid .card-icon-box { width: var(--icon-size-grid); height: var(--icon-size-grid); font-size: var(--icon-font-grid); margin-bottom: 15px; border-radius: 12px; }
         .grid.view-grid .card-actions { border-top: 1px solid var(--glass-border); margin-top: auto; padding: 15px 24px; }
         .grid.view-grid .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        /* List */
+
+        /* List View */
         .grid.view-list { grid-template-columns: 1fr; gap: 10px; }
         .grid.view-list .card { flex-direction: row; align-items: center; padding: 8px 16px; min-height: 54px; border-radius: 8px; }
         .grid.view-list .card-main { display: flex; align-items: center; gap: 15px; padding: 0; flex: 1; min-width: 0; }
@@ -62,12 +67,18 @@
         .grid.view-list .btn-text span { display: none; }
         .grid.view-list .btn-text i { font-size: 0.9rem; color: var(--text-sub); }
         .grid.view-list .btn-text:hover i { color: #fff; }
-        @media (max-width: 768px) { .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; } .grid.view-list p.desc { display: none; } .grid.view-list h3 { min-width: auto; } .grid.view-list .card-actions { display: none; } }
 
-        /* Card Common */
+        @media (max-width: 768px) {
+            .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; }
+            .grid.view-list p.desc { display: none; }
+            .grid.view-list h3 { min-width: auto; }
+            .grid.view-list .card-actions { display: none; }
+        }
+
+        /* Card Style */
         .card { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; display: flex; position: relative; transition: all 0.2s ease; }
         .card:hover { border-color: rgba(167, 139, 250, 0.4); background: rgba(30, 41, 59, 0.8); transform: translateY(-2px); }
-        .card-main { padding: 24px; text-decoration: none; color: inherit; width: 100%; }
+        .card-main { padding: 24px; text-decoration: none; color: inherit; width: 100%; cursor: pointer; }
         .card-icon-box { background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
         .card-icon-box i { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .card-actions { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
@@ -76,12 +87,24 @@
         .tags { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
         .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.05); }
 
-        /* Loading & Error States */
-        .status-msg { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-sub); }
+        /* Loading */
+        .status-msg { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-sub); }
         .hidden { display: none !important; }
+        
+        /* Warning Banner */
+        #warning-banner {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; 
+            background: #ef4444; color: white; text-align: center; padding: 10px; z-index: 9999;
+            font-size: 0.9rem; font-weight: 600;
+        }
     </style>
 </head>
 <body>
+    
+    <div id="warning-banner">
+        ⚠️ Warning: You are viewing source code. Please visit <a href="#" id="correct-link" style="color:white; text-decoration:underline;">the Deployment URL</a> to see demos.
+    </div>
 
     <canvas id="star-canvas"></canvas>
 
@@ -96,7 +119,7 @@
             <div class="header-controls">
                 <a href="#" id="gh-link" class="github-badge" target="_blank">
                     <i class="fab fa-github"></i>
-                    <span id="star-display">Loading...</span>
+                    <span id="star-display">Scanning...</span>
                 </a>
                 <button class="icon-btn active" id="btn-grid" onclick="switchView('grid')" title="Grid View">
                     <i class="fas fa-border-all"></i>
@@ -118,25 +141,23 @@
         <div class="grid view-grid" id="projectGrid">
             <div class="status-msg">
                 <i class="fas fa-circle-notch fa-spin fa-2x"></i>
-                <p style="margin-top:10px;">Scanning Repository...</p>
+                <p style="margin-top:15px;">Initializing Universe...</p>
             </div>
         </div>
     </div>
 
     <script>
         // ============================================
-        // 🛠️ 系统配置
+        // 🛠️ CONFIGURATION
         // ============================================
         const CONFIG = {
             user: "starryguli",
             repo: "My-Web-Projects",
             branch: "main",
+            // 忽略的文件/文件夹
+            exclude: ['.git', '.github', 'images', 'thumbnails', 'css', 'js', 'CNAME', 'README.md', 'LICENSE', 'index.html'],
             
-            // 忽略的系统文件夹
-            exclude: ['.git', '.github', 'images', 'thumbnails', 'css', 'js', 'CNAME'],
-
-            // ⚠️ 详细信息映射表
-            // 如果文件夹名在这里，就显示自定义信息；如果不在，就显示默认信息
+            // ⚠️ 详细配置表：键名必须与文件夹名一致
             meta: {
                 "CyberHand": { icon: "fas fa-robot", tags: ["Robotics"], en: "Robotic hand control interface.", zh: "赛博机械手控制终端。" },
                 "Holographic Workbench": { icon: "fas fa-cube", tags: ["3D UI"], en: "Futuristic holographic workbench concept.", zh: "全息工作台概念验证。" },
@@ -158,54 +179,70 @@
         };
 
         // ============================================
-        // 🚀 核心逻辑 (Auto-Scan)
+        // 🚀 核心逻辑
         // ============================================
         
         let isEnglish = true;
+        
+        // 1. 域名检测与强制跳转链接生成
+        const DEPLOY_URL = `https://${CONFIG.user}.github.io/${CONFIG.repo}`;
+        
+        function checkEnv() {
+            // 如果用户不在 github.io 上访问，提示他
+            if(window.location.hostname === 'github.com') {
+                const banner = document.getElementById('warning-banner');
+                const link = document.getElementById('correct-link');
+                link.href = DEPLOY_URL;
+                banner.style.display = 'block';
+            }
+        }
 
         async function init() {
+            checkEnv();
             initStars(); animateStars();
-            
-            // 1. 获取 Star 数
-            fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}`)
-                .then(r => r.json())
-                .then(d => { if(d.stargazers_count) document.getElementById('star-display').innerText = `${d.stargazers_count} Stars`; })
-                .catch(e => console.log('Star fetch failed'));
 
-            // 2. 扫描仓库文件
             const grid = document.getElementById('projectGrid');
+            
             try {
-                // 请求 API
+                // Fetch Projects
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/`);
-                
-                if (!res.ok) throw new Error("API Failed");
+                if (!res.ok) throw new Error("API Limit");
                 const data = await res.json();
                 
-                // 过滤：只要文件夹，且不在排除列表中
+                // Filter folders
                 const folders = data.filter(item => item.type === 'dir' && !CONFIG.exclude.includes(item.name));
                 
-                grid.innerHTML = ''; // 清除 Loading
+                grid.innerHTML = ''; // Clear Loading
+
+                // 获取 Star 数
+                fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}`)
+                    .then(r=>r.json()).then(d=>{ if(d.stargazers_count) document.getElementById('star-display').innerText = `${d.stargazers_count} Stars`});
 
                 folders.forEach(folder => {
                     const name = folder.name;
-                    // 尝试匹配配置，匹配不到则用默认值
-                    const info = CONFIG.meta[name] || {
-                        icon: "fas fa-folder",
-                        tags: ["Project"],
-                        en: name, // 默认英文简介显示文件夹名
-                        zh: name  // 默认中文简介显示文件夹名
+                    // 如果配置表里没有，使用“智能默认值”，防止语言错乱
+                    const isConfigured = CONFIG.meta.hasOwnProperty(name);
+                    const info = isConfigured ? CONFIG.meta[name] : {
+                        icon: "fas fa-folder-open",
+                        tags: ["Uncategorized"],
+                        en: "No description available.",
+                        zh: "暂无描述信息。"
                     };
 
-                    const safeLink = encodeURIComponent(name); // 处理空格
-                    const tagsHtml = info.tags.map(t => `<span class="tag">${t}</span>`).join('');
-                    
+                    // ⚠️ 关键修复：强制使用绝对路径指向 GitHub Pages，而不是相对路径
+                    // 这样即使你在源码里点，也会跳去真正的网页，而不会显示代码
+                    const safeName = encodeURIComponent(name);
+                    const demoUrl = `${DEPLOY_URL}/${safeName}/`; 
+                    const codeUrl = `https://github.com/${CONFIG.user}/${CONFIG.repo}/tree/${CONFIG.branch}/${safeName}`;
+
                     const card = document.createElement('div');
                     card.className = 'card';
-                    // 搜索时会搜文件夹名、中英文简介
                     card.setAttribute('data-search', `${name} ${info.en} ${info.zh}`.toLowerCase());
-                    
+
+                    const tagsHtml = info.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
                     card.innerHTML = `
-                        <a href="${safeLink}/" class="card-main">
+                        <a href="${demoUrl}" class="card-main" target="_blank">
                             <div class="card-icon-box"><i class="${info.icon}"></i></div>
                             <div class="text-content">
                                 <h3>${name}</h3>
@@ -214,8 +251,8 @@
                             </div>
                         </a>
                         <div class="card-actions">
-                            <a href="${safeLink}/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                            <a href="https://github.com/${CONFIG.user}/${CONFIG.repo}/tree/${CONFIG.branch}/${safeLink}" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
+                            <a href="${demoUrl}" class="btn-text" target="_blank"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
+                            <a href="${codeUrl}" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -225,17 +262,11 @@
 
             } catch (err) {
                 console.error(err);
-                grid.innerHTML = `
-                    <div class="status-msg">
-                        <i class="fas fa-exclamation-triangle" style="color:#ef4444; font-size:2rem;"></i>
-                        <p style="margin-top:10px;">Load Failed (Rate Limit or Network Error)</p>
-                        <p style="font-size:0.8rem; opacity:0.6;">Try refreshing later.</p>
-                    </div>
-                `;
+                grid.innerHTML = `<div class="status-msg" style="color:#ef4444">API Rate Limit Exceeded.<br>Please try again later.</div>`;
             }
         }
 
-        // View Switcher
+        // Helpers
         function switchView(mode) {
             const grid = document.getElementById('projectGrid');
             const btnGrid = document.getElementById('btn-grid');
@@ -249,7 +280,6 @@
             }
         }
 
-        // Lang Toggle
         function toggleLang() {
             isEnglish = !isEnglish;
             document.querySelectorAll('.desc').forEach(p => {
@@ -257,21 +287,19 @@
             });
             updateSearchPlaceholder(document.querySelectorAll('.card').length);
         }
-        
+
         function updateSearchPlaceholder(count) {
             document.getElementById('searchInput').placeholder = isEnglish ? `Search ${count} projects...` : `搜索 ${count} 个项目...`;
         }
 
-        // Search
         document.getElementById('searchInput').addEventListener('keyup', (e) => {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.card').forEach(card => {
-                const searchData = card.getAttribute('data-search');
-                card.classList.toggle('hidden', !searchData.includes(term));
+                const search = card.getAttribute('data-search');
+                card.classList.toggle('hidden', !search.includes(term));
             });
         });
 
-        // Github Link
         document.getElementById('gh-link').href = `https://github.com/${CONFIG.user}/${CONFIG.repo}`;
 
         // Starry Background
@@ -297,7 +325,6 @@
         }
         window.addEventListener('resize', initStars);
         
-        // Start
         init();
     </script>
 </body>

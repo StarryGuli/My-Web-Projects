@@ -1,0 +1,661 @@
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import * as THREE from 'three';
+
+// --- 配置参数 ---
+const CONFIG = {
+  leafCount: 3000,      // 树叶 (Tetrahedron)
+  orbCount: 400,        // 圆球装饰 (Icosahedron) - 红/金
+  gemCount: 300,        // 棱形装饰 (Octahedron) - 蓝/银
+  snowCount: 600,       // 氛围雪花 (Small Tetrahedron)
+  
+  treeHeight: 10,
+  treeRadius: 4.2,
+  scatterRadius: 18,
+  
+  colors: {
+    emerald: '#023020',
+    darkGreen: '#011810',
+    gold: '#FFD700',
+    ruby: '#E0115F',
+    sapphire: '#0F52BA',
+    silver: '#F5F5F5',
+    snow: '#E0FFFF'
+  }
+};
+
+// --- 类型定义 ---
+type HandState = {
+  isTracking: boolean;
+  gesture: 'OPEN' | 'CLOSED';
+  position: { x: number; y: number }; 
+};
+
+// --- 通用数据生成器 ---
+function generateData(
+  count: number, 
+  type: 'LEAF' | 'ORB' | 'GEM' | 'SNOW' | 'STAR'
+) {
+  const scatterData = new Float32Array(count * 3);
+  const treeData = new Float32Array(count * 3);
+  const colorData = new Float32Array(count * 3);
+  const randomData = new Float32Array(count); 
+
+  const _emerald = new THREE.Color(CONFIG.colors.emerald);
+  const _dark = new THREE.Color(CONFIG.colors.darkGreen);
+  const _gold = new THREE.Color(CONFIG.colors.gold);
+  const _ruby = new THREE.Color(CONFIG.colors.ruby);
+  const _sapphire = new THREE.Color(CONFIG.colors.sapphire);
+  const _silver = new THREE.Color(CONFIG.colors.silver);
+  const _snow = new THREE.Color(CONFIG.colors.snow);
+  const _tempColor = new THREE.Color();
+
+  for (let i = 0; i < count; i++) {
+    const i3 = i * 3;
+    const rIdx = Math.random();
+
+    // --- 1. SCATTER POSITION ---
+    const r = Math.cbrt(Math.random()) * CONFIG.scatterRadius * (type === 'SNOW' ? 1.5 : 1.0);
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    
+    scatterData[i3] = r * Math.sin(phi) * Math.cos(theta);
+    scatterData[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    scatterData[i3 + 2] = r * Math.cos(phi);
+
+    // --- 2. TREE POSITION & COLOR ---
+    
+    // Default Tree Logic
+    let yNorm = Math.random();
+    let y = 0, x = 0, z = 0;
+
+    if (type === 'LEAF') {
+      y = (1 - Math.pow(yNorm, 0.9)) * CONFIG.treeHeight - (CONFIG.treeHeight / 2);
+      const radiusAtY = yNorm * CONFIG.treeRadius * (0.6 + Math.random() * 0.6); 
+      const spirals = 18; 
+      const angle = yNorm * Math.PI * 2 * spirals + (Math.random() * Math.PI);
+      
+      x = Math.cos(angle) * radiusAtY;
+      z = Math.sin(angle) * radiusAtY;
+
+      // Color: 混合深绿、祖母绿和少量金色
+      if (rIdx > 0.95) _tempColor.copy(_gold);
+      else if (rIdx > 0.6) _tempColor.copy(_emerald);
+      else _tempColor.copy(_dark).offsetHSL(0, 0, Math.random() * 0.1);
+
+    } else if (type === 'ORB') {
+      // 挂在表面
+      y = (1 - yNorm) * CONFIG.treeHeight - (CONFIG.treeHeight / 2);
+      const radiusAtY = yNorm * CONFIG.treeRadius * 1.05; 
+      const angle = yNorm * Math.PI * 2 * 10 + Math.random() * Math.PI * 2;
+      x = Math.cos(angle) * radiusAtY;
+      z = Math.sin(angle) * radiusAtY;
+
+      // Color: 红 & 金
+      if (rIdx > 0.4) _tempColor.copy(_ruby).multiplyScalar(1.5);
+      else _tempColor.copy(_gold).multiplyScalar(1.2);
+
+    } else if (type === 'GEM') {
+      // 另一种分布
+      y = (1 - Math.pow(yNorm, 1.2)) * CONFIG.treeHeight - (CONFIG.treeHeight / 2);
+      const radiusAtY = yNorm * CONFIG.treeRadius * 1.15; 
+      const angle = yNorm * Math.PI * 2 * 8 + Math.random() * Math.PI * 2;
+      x = Math.cos(angle) * radiusAtY;
+      z = Math.sin(angle) * radiusAtY;
+
+      // Color: 蓝 & 银
+      if (rIdx > 0.5) _tempColor.copy(_sapphire).multiplyScalar(2.0);
+      else _tempColor.copy(_silver).multiplyScalar(1.5);
+
+    } else if (type === 'SNOW') {
+      // 形成一个流动的环
+      y = (Math.random() - 0.5) * CONFIG.treeHeight * 1.5;
+      const radius = CONFIG.treeRadius * (1.5 + Math.random() * 2);
+      const angle = Math.random() * Math.PI * 2;
+      x = Math.cos(angle) * radius;
+      z = Math.sin(angle) * radius;
+
+      _tempColor.copy(_snow);
+
+    } else if (type === 'STAR') {
+      // 树顶
+      y = CONFIG.treeHeight / 2 + 0.2 + (Math.random() * 0.5); // 稍微分散一点
+      x = (Math.random() - 0.5) * 0.5;
+      z = (Math.random() - 0.5) * 0.5;
+      _tempColor.copy(_gold).multiplyScalar(3.0);
+    }
+
+    treeData[i3] = x;
+    treeData[i3 + 1] = y;
+    treeData[i3 + 2] = z;
+
+    colorData[i3] = _tempColor.r;
+    colorData[i3 + 1] = _tempColor.g;
+    colorData[i3 + 2] = _tempColor.b;
+
+    randomData[i] = Math.random();
+  }
+
+  return { scatterData, treeData, colorData, randomData };
+}
+
+// --- 视觉模块 ---
+const VisionController = ({ 
+  handRef, 
+  setMode 
+}: { 
+  handRef: React.MutableRefObject<HandState>,
+  setMode: (m: 'SCATTER' | 'TREE') => void
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [status, setStatus] = useState<'INIT' | 'LOADING' | 'READY' | 'ERROR'>('INIT');
+
+  useEffect(() => {
+    const loadScript = (src: string) => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve(true);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.crossOrigin = 'anonymous';
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.body.appendChild(script);
+      });
+    };
+
+    const initVision = async () => {
+      setStatus('LOADING');
+      try {
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
+        startTracking();
+      } catch (e) {
+        console.error(e);
+        setStatus('ERROR');
+      }
+    };
+
+    initVision();
+  }, []);
+
+  const startTracking = () => {
+    if (!videoRef.current || !(window as any).Hands) return;
+
+    const hands = new (window as any).Hands({
+      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    hands.onResults((results: any) => {
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        let cx = 0, cy = 0;
+        landmarks.forEach((lm: any) => { cx += lm.x; cy += lm.y; });
+        cx /= landmarks.length;
+        cy /= landmarks.length;
+
+        const nx = (cx - 0.5) * -2; 
+        const ny = -(cy - 0.5) * 2;
+
+        const wrist = landmarks[0];
+        const tips = [8, 12, 16, 20];
+        let totalDist = 0;
+        tips.forEach(idx => {
+          const tip = landmarks[idx];
+          const dist = Math.sqrt(Math.pow(tip.x - wrist.x, 2) + Math.pow(tip.y - wrist.y, 2));
+          totalDist += dist;
+        });
+        const isClosed = (totalDist / 4) < 0.25; 
+
+        handRef.current = {
+          isTracking: true,
+          gesture: isClosed ? 'CLOSED' : 'OPEN',
+          position: { x: nx, y: ny }
+        };
+
+        if (isClosed) setMode('TREE');
+        else setMode('SCATTER');
+        setStatus('READY');
+      } else {
+        handRef.current.isTracking = false;
+      }
+    });
+
+    if ((window as any).Camera) {
+      const camera = new (window as any).Camera(videoRef.current, {
+        onFrame: async () => { await hands.send({ image: videoRef.current }); },
+        width: 320, height: 240
+      });
+      camera.start();
+    }
+  };
+
+  return (
+    <div className="absolute bottom-4 right-4 z-50 flex flex-col items-end pointer-events-none">
+      <div className={`
+        relative overflow-hidden rounded-lg border border-[#FFD700]/30 
+        transition-all duration-500 bg-black/40 backdrop-blur-sm
+        ${status === 'READY' ? 'opacity-80' : 'opacity-40'}
+      `}>
+        <video 
+          ref={videoRef} 
+          className="w-32 h-24 object-cover transform -scale-x-100 opacity-50"
+          playsInline 
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          {status === 'LOADING' && <span className="text-[#FFD700] text-xs animate-pulse">VISION INIT...</span>}
+          {status === 'READY' && <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#00ffaa] shadow-[0_0_10px_#00ffaa]" />}
+        </div>
+      </div>
+      <div className="mt-2 text-[10px] text-[#0fa37f] font-mono tracking-widest text-right">
+        {status === 'READY' ? '• HAND TRACKING ACTIVE •' : '• WAITING FOR CAMERA •'} <br/>
+        <span className="text-[#FFD700]/50">FIST: ASSEMBLE | PALM: ROTATE</span>
+      </div>
+    </div>
+  );
+};
+
+// --- 3D 视图组件 ---
+const ThreeView = ({ 
+  mode, 
+  handRef 
+}: { 
+  mode: 'SCATTER' | 'TREE',
+  handRef: React.MutableRefObject<HandState>
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // --- Init ---
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x010a08, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 0, 18);
+
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, alpha: true, powerPreference: "high-performance"
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.5;
+    
+    containerRef.current.appendChild(renderer.domElement);
+
+    // --- Shader Injection Helper ---
+    const injectShader = (shader: any, type: string) => {
+      shader.uniforms.uMorphProgress = { value: 0 };
+      shader.uniforms.uTime = { value: 0 };
+
+      shader.vertexShader = `
+        attribute vec3 aScatterPos;
+        attribute vec3 aTreePos;
+        attribute float aRandom;
+        uniform float uMorphProgress;
+        uniform float uTime;
+        
+        float easeInOutCubic(float x) {
+          return x < 0.5 ? 4.0 * x * x * x : 1.0 - pow(-2.0 * x + 2.0, 3.0) / 2.0;
+        }
+        
+        mat3 rotateY(float angle) {
+          float c = cos(angle);
+          float s = sin(angle);
+          return mat3(c, 0, s, 0, 1, 0, -s, 0, c);
+        }
+      ` + shader.vertexShader;
+
+      // 不同的粒子类型有不同的动画行为
+      let animLogic = '';
+      if (type === 'LEAF') {
+        animLogic = `
+          float spin = (1.0 - t) * aRandom * 15.0 + uTime * 0.2;
+          float floatY = sin(uTime * 1.5 + finalPos.x * 0.5) * 0.1;
+          transformed = rotateY(spin) * transformed;
+          transformed += finalPos;
+          transformed.y += floatY;
+        `;
+      } else if (type === 'SNOW') {
+        animLogic = `
+          // 雪花在树形态下会围绕中心旋转
+          float orbitSpeed = 0.5 * (aRandom + 0.5);
+          float orbitAngle = uTime * orbitSpeed + aRandom * 6.28;
+          
+          // 如果是 Tree 模式，让雪花形成螺旋风暴
+          if (t > 0.5) {
+             float r = length(finalPos.xz);
+             finalPos.x = cos(orbitAngle) * r;
+             finalPos.z = sin(orbitAngle) * r;
+             finalPos.y += sin(uTime + aRandom * 10.0) * 0.5;
+          } else {
+             finalPos.y -= uTime * 0.5; // 散落模式下简单的下落 (模拟)
+             finalPos.y = mod(finalPos.y + 10.0, 20.0) - 10.0;
+          }
+          
+          transformed = rotateY(uTime + aRandom) * transformed;
+          transformed += finalPos;
+        `;
+      } else if (type === 'STAR') {
+        animLogic = `
+          // 星星自转
+          float spin = uTime * 1.5;
+          transformed = rotateY(spin) * transformed;
+          transformed += finalPos;
+          // 微微浮动
+          transformed.y += sin(uTime * 2.0) * 0.1;
+        `;
+      } else {
+        // Gems & Orbs
+        animLogic = `
+          float spin = (1.0 - t) * aRandom * 10.0 + uTime * 0.1;
+          transformed = rotateY(spin) * transformed;
+          transformed += finalPos;
+          transformed.y += sin(uTime * 1.2 + finalPos.x) * 0.05;
+        `;
+      }
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `
+        vec3 transformed = vec3(0.0);
+        float t = easeInOutCubic(uMorphProgress);
+        vec3 finalPos = mix(aScatterPos, aTreePos, t);
+        
+        transformed = position;
+        transformed *= (0.5 + aRandom * 0.8); // 随机大小
+        
+        ${animLogic}
+        `
+      );
+      return shader;
+    };
+
+    const meshes: THREE.Mesh[] = [];
+
+    // --- 1. LEAVES (Tetrahedron) ---
+    const leafGeo = new THREE.TetrahedronGeometry(0.12, 0);
+    const leafIG = new THREE.InstancedBufferGeometry().copy(leafGeo);
+    const leafD = generateData(CONFIG.leafCount, 'LEAF');
+    leafIG.setAttribute('aScatterPos', new THREE.InstancedBufferAttribute(leafD.scatterData, 3));
+    leafIG.setAttribute('aTreePos', new THREE.InstancedBufferAttribute(leafD.treeData, 3));
+    leafIG.setAttribute('color', new THREE.InstancedBufferAttribute(leafD.colorData, 3));
+    leafIG.setAttribute('aRandom', new THREE.InstancedBufferAttribute(leafD.randomData, 1));
+    const leafMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.6, vertexColors: true });
+    leafMat.onBeforeCompile = (s) => { leafMat.userData.shader = injectShader(s, 'LEAF'); };
+    const leafMesh = new THREE.InstancedMesh(leafIG, leafMat, CONFIG.leafCount);
+    leafMesh.frustumCulled = false;
+    scene.add(leafMesh);
+    meshes.push(leafMesh);
+
+    // --- 2. ORBS (Icosahedron - Red/Gold) ---
+    const orbGeo = new THREE.IcosahedronGeometry(0.15, 0);
+    const orbIG = new THREE.InstancedBufferGeometry().copy(orbGeo);
+    const orbD = generateData(CONFIG.orbCount, 'ORB');
+    orbIG.setAttribute('aScatterPos', new THREE.InstancedBufferAttribute(orbD.scatterData, 3));
+    orbIG.setAttribute('aTreePos', new THREE.InstancedBufferAttribute(orbD.treeData, 3));
+    orbIG.setAttribute('color', new THREE.InstancedBufferAttribute(orbD.colorData, 3));
+    orbIG.setAttribute('aRandom', new THREE.InstancedBufferAttribute(orbD.randomData, 1));
+    const orbMat = new THREE.MeshStandardMaterial({ roughness: 0.1, metalness: 0.9, vertexColors: true, envMapIntensity: 2 });
+    orbMat.onBeforeCompile = (s) => { orbMat.userData.shader = injectShader(s, 'ORB'); };
+    const orbMesh = new THREE.InstancedMesh(orbIG, orbMat, CONFIG.orbCount);
+    orbMesh.frustumCulled = false;
+    scene.add(orbMesh);
+    meshes.push(orbMesh);
+
+    // --- 3. GEMS (Octahedron - Blue/Silver) ---
+    const gemGeo = new THREE.OctahedronGeometry(0.12, 0);
+    const gemIG = new THREE.InstancedBufferGeometry().copy(gemGeo);
+    const gemD = generateData(CONFIG.gemCount, 'GEM');
+    gemIG.setAttribute('aScatterPos', new THREE.InstancedBufferAttribute(gemD.scatterData, 3));
+    gemIG.setAttribute('aTreePos', new THREE.InstancedBufferAttribute(gemD.treeData, 3));
+    gemIG.setAttribute('color', new THREE.InstancedBufferAttribute(gemD.colorData, 3));
+    gemIG.setAttribute('aRandom', new THREE.InstancedBufferAttribute(gemD.randomData, 1));
+    const gemMat = new THREE.MeshStandardMaterial({ roughness: 0.05, metalness: 1.0, vertexColors: true, envMapIntensity: 3 });
+    gemMat.onBeforeCompile = (s) => { gemMat.userData.shader = injectShader(s, 'GEM'); };
+    const gemMesh = new THREE.InstancedMesh(gemIG, gemMat, CONFIG.gemCount);
+    gemMesh.frustumCulled = false;
+    scene.add(gemMesh);
+    meshes.push(gemMesh);
+
+    // --- 4. SNOW (Small Tetrahedrons - White) ---
+    const snowGeo = new THREE.TetrahedronGeometry(0.08, 0);
+    const snowIG = new THREE.InstancedBufferGeometry().copy(snowGeo);
+    const snowD = generateData(CONFIG.snowCount, 'SNOW');
+    snowIG.setAttribute('aScatterPos', new THREE.InstancedBufferAttribute(snowD.scatterData, 3));
+    snowIG.setAttribute('aTreePos', new THREE.InstancedBufferAttribute(snowD.treeData, 3));
+    snowIG.setAttribute('color', new THREE.InstancedBufferAttribute(snowD.colorData, 3));
+    snowIG.setAttribute('aRandom', new THREE.InstancedBufferAttribute(snowD.randomData, 1));
+    const snowMat = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.1, vertexColors: true, emissive: 0xffffff, emissiveIntensity: 0.5 });
+    snowMat.onBeforeCompile = (s) => { snowMat.userData.shader = injectShader(s, 'SNOW'); };
+    const snowMesh = new THREE.InstancedMesh(snowIG, snowMat, CONFIG.snowCount);
+    snowMesh.frustumCulled = false;
+    scene.add(snowMesh);
+    meshes.push(snowMesh);
+
+    // --- 5. STAR (Top - Gold) ---
+    // Make a single large star from multiple instances to make it look complex
+    const starGeo = new THREE.OctahedronGeometry(0.4, 0);
+    const starIG = new THREE.InstancedBufferGeometry().copy(starGeo);
+    const starCount = 12; // Cluster of shards
+    const starD = generateData(starCount, 'STAR');
+    starIG.setAttribute('aScatterPos', new THREE.InstancedBufferAttribute(starD.scatterData, 3));
+    starIG.setAttribute('aTreePos', new THREE.InstancedBufferAttribute(starD.treeData, 3));
+    starIG.setAttribute('color', new THREE.InstancedBufferAttribute(starD.colorData, 3));
+    starIG.setAttribute('aRandom', new THREE.InstancedBufferAttribute(starD.randomData, 1));
+    const starMat = new THREE.MeshStandardMaterial({ roughness: 0.1, metalness: 1.0, vertexColors: true, emissive: 0xffaa00, emissiveIntensity: 2.0 });
+    starMat.onBeforeCompile = (s) => { starMat.userData.shader = injectShader(s, 'STAR'); };
+    const starMesh = new THREE.InstancedMesh(starIG, starMat, starCount);
+    starMesh.frustumCulled = false;
+    scene.add(starMesh);
+    meshes.push(starMesh);
+
+    // --- Lights ---
+    const spotLight1 = new THREE.SpotLight(0xfff0cc, 2000);
+    spotLight1.position.set(10, 15, 10);
+    spotLight1.angle = 0.5;
+    scene.add(spotLight1);
+
+    const spotLight2 = new THREE.SpotLight(0xaaccff, 1500); // Cold fill
+    spotLight2.position.set(-10, 8, -10);
+    spotLight2.angle = 0.6;
+    scene.add(spotLight2);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+
+    // Sparkles
+    const sparkleLights: THREE.PointLight[] = [];
+    const sparkleCount = 12; 
+    for (let i = 0; i < sparkleCount; i++) {
+      const color = i % 2 === 0 ? 0xffaa00 : 0x00aaff;
+      const pl = new THREE.PointLight(color, 200, 12);
+      scene.add(pl);
+      sparkleLights.push(pl);
+    }
+
+    const shadowGeo = new THREE.PlaneGeometry(30, 30);
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.6, transparent: true });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.rotation.x = -Math.PI / 2;
+    shadowMesh.position.y = -5;
+    scene.add(shadowMesh);
+
+    // --- Interaction ---
+    const controlsState = {
+      isDragging: false,
+      previousMouse: { x: 0, y: 0 },
+      spherical: { radius: 18, theta: Math.PI / 4, phi: Math.PI / 2.5 },
+      target: new THREE.Vector3(0, 0, 0),
+      targetTheta: Math.PI / 4,
+      targetPhi: Math.PI / 2.5
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      controlsState.isDragging = true;
+      controlsState.previousMouse = { x: e.clientX, y: e.clientY };
+      containerRef.current!.style.cursor = 'grabbing';
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!controlsState.isDragging) return;
+      const deltaX = e.clientX - controlsState.previousMouse.x;
+      const deltaY = e.clientY - controlsState.previousMouse.y;
+      controlsState.targetTheta -= deltaX * 0.005;
+      controlsState.targetPhi -= deltaY * 0.005;
+      controlsState.targetPhi = Math.max(0.1, Math.min(Math.PI - 0.1, controlsState.targetPhi));
+      controlsState.previousMouse = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePointerUp = () => {
+      controlsState.isDragging = false;
+      if (containerRef.current) containerRef.current.style.cursor = 'grab';
+    };
+    
+    const handleWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        controlsState.spherical.radius += e.deltaY * 0.01;
+        controlsState.spherical.radius = Math.max(8, Math.min(40, controlsState.spherical.radius));
+    };
+
+    const canvas = renderer.domElement;
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    // --- Loop ---
+    const clock = new THREE.Clock();
+    let reqId: number;
+
+    const animate = () => {
+      reqId = requestAnimationFrame(animate);
+      const time = clock.getElapsedTime();
+
+      // Lights animation
+      sparkleLights.forEach((pl, i) => {
+        const angle = time * 0.4 + (i / sparkleCount) * Math.PI * 2;
+        const radius = 6 + Math.sin(time * 2 + i) * 3;
+        const y = Math.sin(time * 0.7 + i) * 4.5;
+        pl.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+      });
+
+      // Shader update
+      meshes.forEach(mesh => {
+        if (mesh.material.userData.shader) {
+          const shader = mesh.material.userData.shader;
+          shader.uniforms.uTime.value = time;
+          const target = modeRef.current === 'TREE' ? 1 : 0;
+          const current = shader.uniforms.uMorphProgress.value;
+          shader.uniforms.uMorphProgress.value += (target - current) * 0.04;
+        }
+      });
+
+      // Interaction
+      if (handRef.current.isTracking && !controlsState.isDragging) {
+         const { x, y } = handRef.current.position;
+         controlsState.targetTheta += (Math.PI / 4 + x * 1.0 - controlsState.targetTheta) * 0.05;
+         controlsState.targetPhi += (Math.PI / 2.5 + y * 0.5 - controlsState.targetPhi) * 0.05;
+      }
+
+      controlsState.spherical.theta += (controlsState.targetTheta - controlsState.spherical.theta) * 0.1;
+      controlsState.spherical.phi += (controlsState.targetPhi - controlsState.spherical.phi) * 0.1;
+      
+      const { radius, theta, phi } = controlsState.spherical;
+      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.lookAt(controlsState.target);
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const w = containerRef.current.clientWidth;
+      const h = containerRef.current.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('wheel', handleWheel);
+      cancelAnimationFrame(reqId);
+      
+      renderer.dispose();
+      meshes.forEach(m => {
+        m.geometry.dispose();
+        (m.material as THREE.Material).dispose();
+      });
+      if (containerRef.current) containerRef.current.innerHTML = '';
+    };
+  }, []);
+
+  return <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />;
+};
+
+// --- App 入口 ---
+export default function App() {
+  const [mode, setMode] = useState<'SCATTER' | 'TREE'>('SCATTER');
+  const handRef = useRef<HandState>({ isTracking: false, gesture: 'OPEN', position: { x: 0, y: 0 } });
+
+  return (
+    <div className="w-full h-screen bg-[#010a08] overflow-hidden selection:bg-[#FFD700] selection:text-black relative">
+      <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 z-10">
+        <div className="flex flex-col items-center">
+          <h1 className="text-4xl md:text-5xl font-serif text-[#FFD700] tracking-widest opacity-90 drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]">
+            ARIX LUXURY
+          </h1>
+          <p className="text-xs md:text-sm text-[#0fa37f] tracking-[0.5em] mt-2 uppercase">
+            Interactive Christmas Experience
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-4 mb-8 pointer-events-auto">
+          <button
+            onClick={() => setMode(mode === 'TREE' ? 'SCATTER' : 'TREE')}
+            className={`
+              relative overflow-hidden px-10 py-4
+              transition-all duration-700 ease-out
+              border border-[#FFD700] rounded-full
+              ${mode === 'TREE' 
+                ? 'bg-[#FFD700]/20 text-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.4)]' 
+                : 'bg-transparent text-[#0fa37f] border-[#0fa37f]/50 hover:border-[#FFD700] hover:text-[#FFD700]'
+              }
+            `}
+          >
+            <span className="relative z-10 font-serif tracking-widest text-sm uppercase font-bold">
+              {mode === 'TREE' ? 'Release Magic' : 'Gather Spirit'}
+            </span>
+          </button>
+        </div>
+      </div>
+      <VisionController handRef={handRef} setMode={setMode} />
+      <ThreeView mode={mode} handRef={handRef} />
+    </div>
+  );
+}

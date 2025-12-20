@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- 🎨 核心变量 --- */
+        /* --- 🎨 样式保持不变 (使用最美观的 v6.3/v8.0 样式) --- */
         :root {
             --bg-deep: #030712;
             --glass-bg: rgba(30, 41, 59, 0.4);
@@ -15,156 +15,44 @@
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
             --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%);
-            
-            --icon-size-grid: 46px; 
-            --icon-font-grid: 1.5rem;
-            --icon-size-list: 24px;
-            --icon-font-list: 0.85rem;
+            --icon-size-grid: 46px; --icon-font-grid: 1.5rem;
+            --icon-size-list: 24px; --icon-font-list: 0.85rem;
         }
-
         * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        #star-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: radial-gradient(circle at 50% 0%, #172554 0%, #030712 60%);
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 40px 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* --- Header --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .brand-group h1 {
-            font-size: 2.2rem;
-            margin: 0;
-            font-weight: 800;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .brand-subtitle {
-            font-size: 0.9rem;
-            color: var(--text-sub);
-            margin-top: 4px;
-        }
-
-        /* Controls */
-        .header-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .github-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            padding: 6px 12px;
-            border-radius: 50px;
-            text-decoration: none;
-            color: var(--text-main);
-            font-size: 0.8rem;
-            transition: 0.3s;
-        }
-        .github-badge:hover { background: rgba(255,255,255,0.08); }
+        body { margin: 0; padding: 0; background-color: var(--bg-deep); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; min-height: 100vh; }
+        #star-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 0%, #172554 0%, #030712 60%); }
+        .container { max-width: 1280px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
         
-        .icon-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
-            background: rgba(255,255,255,0.03);
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-        }
-        .icon-btn:hover, .icon-btn.active {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border-color: rgba(255,255,255,0.2);
-        }
+        /* Header & Controls */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
+        .brand-group h1 { font-size: 2.2rem; margin: 0; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .brand-subtitle { font-size: 0.9rem; color: var(--text-sub); margin-top: 4px; }
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+        
+        .github-badge { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 50px; text-decoration: none; color: var(--text-main); font-size: 0.8rem; transition: 0.3s; }
+        .github-badge:hover { background: rgba(255,255,255,0.08); }
+        .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.03); color: var(--text-sub); cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+        .icon-btn:hover, .icon-btn.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
 
+        /* Search */
         .search-wrapper { margin-bottom: 25px; max-width: 100%; position: relative; }
-        .search-input {
-            width: 100%;
-            padding: 14px 18px 14px 42px;
-            border-radius: 10px;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            color: white;
-            font-size: 0.9rem;
-            transition: 0.3s;
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: #a78bfa;
-            background: rgba(30, 41, 59, 0.8);
-            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
-        }
+        .search-input { width: 100%; padding: 14px 18px 14px 42px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: blur(12px); color: white; font-size: 0.9rem; transition: 0.3s; }
+        .search-input:focus { outline: none; border-color: #a78bfa; background: rgba(30, 41, 59, 0.8); box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1); }
         .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 0.9rem; pointer-events: none;}
 
-        /* --- Grid Layout System --- */
-        .grid {
-            display: grid;
-            gap: 20px;
-            transition: 0.3s;
-        }
-
-        /* Mode 1: Grid */
+        /* Grid/List View */
+        .grid { display: grid; gap: 20px; transition: 0.3s; }
+        /* Grid */
         .grid.view-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .grid.view-grid .card { flex-direction: column; text-align: left; }
-        .grid.view-grid .card-icon-box {
-            width: var(--icon-size-grid); height: var(--icon-size-grid);
-            font-size: var(--icon-font-grid); margin-bottom: 15px; border-radius: 12px;
-        }
+        .grid.view-grid .card-icon-box { width: var(--icon-size-grid); height: var(--icon-size-grid); font-size: var(--icon-font-grid); margin-bottom: 15px; border-radius: 12px; }
         .grid.view-grid .card-actions { border-top: 1px solid var(--glass-border); margin-top: auto; padding: 15px 24px; }
         .grid.view-grid .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-
-        /* Mode 2: List */
+        /* List */
         .grid.view-list { grid-template-columns: 1fr; gap: 10px; }
         .grid.view-list .card { flex-direction: row; align-items: center; padding: 8px 16px; min-height: 54px; border-radius: 8px; }
         .grid.view-list .card-main { display: flex; align-items: center; gap: 15px; padding: 0; flex: 1; min-width: 0; }
-        .grid.view-list .card-icon-box {
-            width: var(--icon-size-list); height: var(--icon-size-list);
-            font-size: var(--icon-font-list); margin-bottom: 0; flex-shrink: 0;
-            border-radius: 6px; background: rgba(255,255,255,0.03);
-        }
+        .grid.view-list .card-icon-box { width: var(--icon-size-list); height: var(--icon-size-list); font-size: var(--icon-font-list); margin-bottom: 0; flex-shrink: 0; border-radius: 6px; background: rgba(255,255,255,0.03); }
         .grid.view-list .text-content { flex: 1; display: flex; align-items: center; gap: 20px; min-width: 0; }
         .grid.view-list h3 { margin: 0; font-size: 0.9rem; white-space: nowrap; min-width: 160px; }
         .grid.view-list p.desc { display: block; margin: 0; font-size: 0.85rem; color: rgba(148, 163, 184, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
@@ -174,20 +62,10 @@
         .grid.view-list .btn-text span { display: none; }
         .grid.view-list .btn-text i { font-size: 0.9rem; color: var(--text-sub); }
         .grid.view-list .btn-text:hover i { color: #fff; }
+        @media (max-width: 768px) { .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; } .grid.view-list p.desc { display: none; } .grid.view-list h3 { min-width: auto; } .grid.view-list .card-actions { display: none; } }
 
-        @media (max-width: 768px) {
-            .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; }
-            .grid.view-list p.desc { display: none; }
-            .grid.view-list h3 { min-width: auto; }
-            .grid.view-list .card-actions { display: none; }
-        }
-
-        /* --- Card Common --- */
-        .card {
-            background: var(--glass-bg); backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border); border-radius: 16px;
-            overflow: hidden; display: flex; position: relative; transition: all 0.2s ease;
-        }
+        /* Card Common */
+        .card { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; display: flex; position: relative; transition: all 0.2s ease; }
         .card:hover { border-color: rgba(167, 139, 250, 0.4); background: rgba(30, 41, 59, 0.8); transform: translateY(-2px); }
         .card-main { padding: 24px; text-decoration: none; color: inherit; width: 100%; }
         .card-icon-box { background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
@@ -198,9 +76,8 @@
         .tags { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
         .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.05); }
 
-        .loading-spinner {
-            grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-sub);
-        }
+        /* Loading & Error States */
+        .status-msg { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-sub); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -239,191 +116,100 @@
         </div>
 
         <div class="grid view-grid" id="projectGrid">
-            <div class="loading-spinner">
+            <div class="status-msg">
                 <i class="fas fa-circle-notch fa-spin fa-2x"></i>
                 <p style="margin-top:10px;">Scanning Repository...</p>
             </div>
-            </div>
+        </div>
     </div>
 
     <script>
         // ============================================
-        // 🛠️ 核心配置区域
+        // 🛠️ 系统配置
         // ============================================
         const CONFIG = {
             user: "starryguli",
             repo: "My-Web-Projects",
             branch: "main",
             
-            // 忽略的文件夹 (不显示在主页)
+            // 忽略的系统文件夹
             exclude: ['.git', '.github', 'images', 'thumbnails', 'css', 'js', 'CNAME'],
 
-            // ⚠️ 项目元数据配置
-            // 1. 如果文件夹在这里有记录，就显示你自定义的图标和描述。
-            // 2. 如果文件夹没在这里记录，会自动显示为【默认图标 + 文件夹名】(实现自动更新)。
-            // 3. 这里的 key (键名) 必须和你仓库里的【文件夹名】完全一致！
-            projects: {
-                "CyberHand": {
-                    icon: "fas fa-robot",
-                    en: "Robotic hand control interface with servo logic visualization.",
-                    zh: "赛博机械手控制终端。舵机逻辑与状态可视化。",
-                    tags: ["Robotics"]
-                },
-                "Holographic Workbench": {
-                    icon: "fas fa-cube",
-                    en: "Futuristic holographic workbench concept exploring spatial UI.",
-                    zh: "全息工作台概念验证。探索空间 UI 交互设计。",
-                    tags: ["3D UI"]
-                },
-                "IMU Dashboard V4": {
-                    icon: "fas fa-compass",
-                    en: "4th Gen Inertial Navigation System dashboard via WebSerial.",
-                    zh: "第四代惯性导航系统仪表盘。WebSerial 数据流。",
-                    tags: ["Serial"]
-                },
-                "IMU 姿态可视化 - 二战坦克版": {
-                    icon: "fas fa-fighter-jet",
-                    en: "Real-time 3D tank model attitude tracking with IMU sensors.",
-                    zh: "二战坦克模型姿态跟随。IMU 数据 3D 映射。",
-                    tags: ["Three.js"]
-                },
-                "Interactive Lidar App": {
-                    icon: "fas fa-satellite-dish",
-                    en: "Interactive point cloud visualization and analysis tool.",
-                    zh: "交互式激光雷达展示。点云缩放与分析。",
-                    tags: ["Lidar"]
-                },
-                "mpu6050_viewer": {
-                    icon: "fas fa-chart-line",
-                    en: "Raw sensor data waveform plotting and attitude calculation.",
-                    zh: "六轴传感器数据可视化与姿态解算。",
-                    tags: ["Sensor"]
-                },
-                "NEO-INTERFACE HUD": {
-                    icon: "fas fa-eye",
-                    en: "Sci-fi style Head-Up Display component library.",
-                    zh: "科幻风格 HUD 组件库。赛博朋克 UI 元素。",
-                    tags: ["UI/UX"]
-                },
-                "PID数据画图_三个数值_2_0": {
-                    icon: "fas fa-wave-square",
-                    en: "3-Channel real-time PID data visualization tool.",
-                    zh: "PID 实时调参波形图。三通道数据显示。",
-                    tags: ["Control"]
-                },
-                "quad_ahrs.html": {
-                    icon: "fas fa-plane",
-                    en: "Quad-copter Attitude and Heading Reference System simulation.",
-                    zh: "四轴姿态解算仿真。四元数与欧拉角变换。",
-                    tags: ["Flight"]
-                },
-                "ray-casting-simulator": {
-                    icon: "fas fa-lightbulb",
-                    en: "2D Ray Casting algorithm for POV and shadow calculation.",
-                    zh: "2D 光线投射算法。FPS 视野与阴影计算。",
-                    tags: ["Algo"]
-                },
-                "Web Audio 频谱分析仪": {
-                    icon: "fas fa-music",
-                    en: "Real-time audio FFT analysis using Web Audio API.",
-                    zh: "音频频谱分析仪。实时 FFT 转换与绘制。",
-                    tags: ["DSP"]
-                },
-                "串口数据画图_两个传感器_1_0": {
-                    icon: "fas fa-plug",
-                    en: "Comparison tool for dual sensor serial data streams.",
-                    zh: "双路串口绘图工具。多传感器数据对比。",
-                    tags: ["Tool"]
-                },
-                "mindmap": {
-                    icon: "fas fa-project-diagram",
-                    en: "Early version of mind mapping component with canvas.",
-                    zh: "思维导图组件 V1.0。早期节点渲染与拖拽。",
-                    tags: ["Canvas"]
-                },
-                "mindmap_2": { // 如果你还没改名，这里可能要写 "mindmap _2"
-                    icon: "fas fa-sitemap",
-                    en: "Upgraded mind map structure with advanced hierarchy.",
-                    zh: "思维导图组件 V2.0。支持复杂层级与样式。",
-                    tags: ["Docs"]
-                },
-                "GlobalEdu Strategy": {
-                    icon: "fas fa-graduation-cap",
-                    en: "Static presentation page for Global Education Strategy.",
-                    zh: "全球教育策略展示页。静态信息展示。",
-                    tags: ["Web"]
-                },
-                "global_relationships_report": {
-                    icon: "fas fa-globe-asia",
-                    en: "Complex network visualization for global reports.",
-                    zh: "全球关系报告可视化。复杂网络图表。",
-                    tags: ["D3.js"]
-                }
+            // ⚠️ 详细信息映射表
+            // 如果文件夹名在这里，就显示自定义信息；如果不在，就显示默认信息
+            meta: {
+                "CyberHand": { icon: "fas fa-robot", tags: ["Robotics"], en: "Robotic hand control interface.", zh: "赛博机械手控制终端。" },
+                "Holographic Workbench": { icon: "fas fa-cube", tags: ["3D UI"], en: "Futuristic holographic workbench concept.", zh: "全息工作台概念验证。" },
+                "IMU Dashboard V4": { icon: "fas fa-compass", tags: ["Serial"], en: "4th Gen Inertial Navigation System dashboard.", zh: "第四代惯性导航系统仪表盘。" },
+                "IMU 姿态可视化 - 二战坦克版": { icon: "fas fa-fighter-jet", tags: ["Three.js"], en: "Real-time 3D tank model attitude tracking.", zh: "二战坦克模型姿态跟随。" },
+                "Interactive Lidar App": { icon: "fas fa-satellite-dish", tags: ["Lidar"], en: "Interactive point cloud visualization.", zh: "交互式激光雷达展示。" },
+                "mpu6050_viewer": { icon: "fas fa-chart-line", tags: ["Sensor"], en: "Raw sensor data waveform plotting.", zh: "六轴传感器数据可视化。" },
+                "NEO-INTERFACE HUD": { icon: "fas fa-eye", tags: ["UI/UX"], en: "Sci-fi style Head-Up Display component library.", zh: "科幻风格 HUD 组件库。" },
+                "PID数据画图_三个数值_2_0": { icon: "fas fa-wave-square", tags: ["Control"], en: "3-Channel real-time PID plotter.", zh: "PID 实时调参波形图。" },
+                "quad_ahrs.html": { icon: "fas fa-plane", tags: ["Flight"], en: "Quad-copter AHRS simulation.", zh: "四轴姿态解算仿真。" },
+                "ray-casting-simulator": { icon: "fas fa-lightbulb", tags: ["Algo"], en: "2D Ray Casting algorithm for POV.", zh: "2D 光线投射算法。" },
+                "Web Audio 频谱分析仪": { icon: "fas fa-music", tags: ["DSP"], en: "Real-time audio FFT analysis.", zh: "音频频谱分析仪。" },
+                "串口数据画图_两个传感器_1_0": { icon: "fas fa-plug", tags: ["Tool"], en: "Dual sensor serial data plotter.", zh: "双路串口绘图工具。" },
+                "mindmap": { icon: "fas fa-project-diagram", tags: ["Canvas"], en: "Early version of mind mapping component.", zh: "思维导图组件 V1.0。" },
+                "mindmap_2": { icon: "fas fa-sitemap", tags: ["Docs"], en: "Upgraded mind map structure.", zh: "思维导图组件 V2.0。" },
+                "GlobalEdu Strategy": { icon: "fas fa-graduation-cap", tags: ["Web"], en: "Global Education Strategy page.", zh: "全球教育策略展示页。" },
+                "global_relationships_report": { icon: "fas fa-globe-asia", tags: ["D3.js"], en: "Complex network visualization.", zh: "全球关系报告可视化。" }
             }
         };
 
         // ============================================
-        // 🚀 核心逻辑
+        // 🚀 核心逻辑 (Auto-Scan)
         // ============================================
         
         let isEnglish = true;
-        
-        // 1. 初始化
-        async function init() {
-            initStars();
-            animateStars();
-            
-            // 并行执行：获取 Star 数 + 获取文件列表
-            fetchStats();
-            await fetchAndRenderProjects();
-        }
 
-        // 2. 获取并渲染项目列表 (GitHub API)
-        async function fetchAndRenderProjects() {
-            const grid = document.getElementById('projectGrid');
+        async function init() {
+            initStars(); animateStars();
             
+            // 1. 获取 Star 数
+            fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}`)
+                .then(r => r.json())
+                .then(d => { if(d.stargazers_count) document.getElementById('star-display').innerText = `${d.stargazers_count} Stars`; })
+                .catch(e => console.log('Star fetch failed'));
+
+            // 2. 扫描仓库文件
+            const grid = document.getElementById('projectGrid');
             try {
-                // 请求 GitHub 仓库内容
+                // 请求 API
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/`);
-                if(!res.ok) throw new Error("API Limit or Network Error");
                 
+                if (!res.ok) throw new Error("API Failed");
                 const data = await res.json();
                 
-                // 1. 过滤：只保留文件夹，且不在忽略列表中
-                const folders = data.filter(item => 
-                    item.type === 'dir' && !CONFIG.exclude.includes(item.name)
-                );
+                // 过滤：只要文件夹，且不在排除列表中
+                const folders = data.filter(item => item.type === 'dir' && !CONFIG.exclude.includes(item.name));
+                
+                grid.innerHTML = ''; // 清除 Loading
 
-                // 2. 清空 Loading
-                grid.innerHTML = '';
-
-                // 3. 生成 HTML
                 folders.forEach(folder => {
                     const name = folder.name;
-                    // 尝试获取配置，如果没有则使用默认值 (Auto-Discovery)
-                    const meta = CONFIG.projects[name] || {
-                        icon: "fas fa-folder", // 默认图标
-                        en: "Auto-detected project folder.", // 默认英文
-                        zh: "自动检测到的项目文件夹。", // 默认中文
-                        tags: ["New"] // 默认标签
+                    // 尝试匹配配置，匹配不到则用默认值
+                    const info = CONFIG.meta[name] || {
+                        icon: "fas fa-folder",
+                        tags: ["Project"],
+                        en: name, // 默认英文简介显示文件夹名
+                        zh: name  // 默认中文简介显示文件夹名
                     };
 
+                    const safeLink = encodeURIComponent(name); // 处理空格
+                    const tagsHtml = info.tags.map(t => `<span class="tag">${t}</span>`).join('');
+                    
                     const card = document.createElement('div');
                     card.className = 'card';
-                    card.setAttribute('data-folder', name); // 用于搜索
+                    // 搜索时会搜文件夹名、中英文简介
+                    card.setAttribute('data-search', `${name} ${info.en} ${info.zh}`.toLowerCase());
                     
-                    // 构建 Tags HTML
-                    const tagsHtml = meta.tags.map(t => `<span class="tag">${t}</span>`).join('');
-                    
-                    // URL 编码 (解决空格问题)
-                    const safeLink = encodeURIComponent(name);
-
                     card.innerHTML = `
                         <a href="${safeLink}/" class="card-main">
-                            <div class="card-icon-box"><i class="${meta.icon}"></i></div>
+                            <div class="card-icon-box"><i class="${info.icon}"></i></div>
                             <div class="text-content">
                                 <h3>${name}</h3>
-                                <p class="desc" data-en="${meta.en}" data-zh="${meta.zh}">${isEnglish ? meta.en : meta.zh}</p>
+                                <p class="desc" data-en="${info.en}" data-zh="${info.zh}">${isEnglish ? info.en : info.zh}</p>
                                 <div class="tags">${tagsHtml}</div>
                             </div>
                         </a>
@@ -434,121 +220,85 @@
                     `;
                     grid.appendChild(card);
                 });
+                
+                updateSearchPlaceholder(folders.length);
 
-                // 更新搜索框 placeholder
-                updateSearchPlaceholder();
-
-            } catch (error) {
-                console.error(error);
-                grid.innerHTML = `<div style="text-align:center; color:#ef4444; width:100%;">
-                    <i class="fas fa-exclamation-triangle"></i> Failed to load projects.<br>
-                    <small>Rate limit exceeded or network error.</small>
-                </div>`;
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = `
+                    <div class="status-msg">
+                        <i class="fas fa-exclamation-triangle" style="color:#ef4444; font-size:2rem;"></i>
+                        <p style="margin-top:10px;">Load Failed (Rate Limit or Network Error)</p>
+                        <p style="font-size:0.8rem; opacity:0.6;">Try refreshing later.</p>
+                    </div>
+                `;
             }
         }
 
-        // 3. 视图切换
+        // View Switcher
         function switchView(mode) {
             const grid = document.getElementById('projectGrid');
             const btnGrid = document.getElementById('btn-grid');
             const btnList = document.getElementById('btn-list');
-            
             if(mode === 'grid') {
-                grid.classList.remove('view-list');
-                grid.classList.add('view-grid');
-                btnGrid.classList.add('active');
-                btnList.classList.remove('active');
+                grid.classList.remove('view-list'); grid.classList.add('view-grid');
+                btnGrid.classList.add('active'); btnList.classList.remove('active');
             } else {
-                grid.classList.remove('view-grid');
-                grid.classList.add('view-list');
-                btnList.classList.add('active');
-                btnGrid.classList.remove('active');
+                grid.classList.remove('view-grid'); grid.classList.add('view-list');
+                btnList.classList.add('active'); btnGrid.classList.remove('active');
             }
         }
 
-        // 4. 语言切换
+        // Lang Toggle
         function toggleLang() {
             isEnglish = !isEnglish;
-            updateSearchPlaceholder();
             document.querySelectorAll('.desc').forEach(p => {
                 p.innerText = isEnglish ? p.getAttribute('data-en') : p.getAttribute('data-zh');
             });
+            updateSearchPlaceholder(document.querySelectorAll('.card').length);
         }
         
-        function updateSearchPlaceholder() {
-            document.getElementById('searchInput').placeholder = isEnglish ? `Search ${document.querySelectorAll('.card').length} projects...` : `搜索 ${document.querySelectorAll('.card').length} 个项目...`;
+        function updateSearchPlaceholder(count) {
+            document.getElementById('searchInput').placeholder = isEnglish ? `Search ${count} projects...` : `搜索 ${count} 个项目...`;
         }
 
-        // 5. 获取 Star 数
-        async function fetchStats() {
-            try {
-                const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}`);
-                const data = await res.json();
-                if(data.stargazers_count !== undefined) {
-                    document.getElementById('star-display').innerHTML = `${data.stargazers_count} Stars`;
-                }
-                document.getElementById('gh-link').href = data.html_url;
-            } catch(e) {}
-        }
-
-        // 6. 搜索功能
+        // Search
         document.getElementById('searchInput').addEventListener('keyup', (e) => {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.card').forEach(card => {
-                const text = card.innerText.toLowerCase();
-                const folder = card.getAttribute('data-folder').toLowerCase();
-                card.classList.toggle('hidden', !(text.includes(term) || folder.includes(term)));
+                const searchData = card.getAttribute('data-search');
+                card.classList.toggle('hidden', !searchData.includes(term));
             });
         });
 
-        // 7. 星空背景
+        // Github Link
+        document.getElementById('gh-link').href = `https://github.com/${CONFIG.user}/${CONFIG.repo}`;
+
+        // Starry Background
         const canvas = document.getElementById('star-canvas');
         const ctx = canvas.getContext('2d');
         let width, height, stars = [];
-
-        function resizeStars() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            createStars();
-        }
-
-        function createStars() {
-            const count = Math.floor((width * height) / 8000); 
+        function initStars() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
             stars = [];
-            for(let i=0; i<count; i++) {
-                stars.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    size: Math.random() * 1.5,
-                    speed: Math.random() * 0.3 + 0.05,
-                    opacity: Math.random(),
-                    change: (Math.random() - 0.5) * 0.02
-                });
-            }
+            const count = Math.floor((width * height) / 8000);
+            for(let i=0; i<count; i++) stars.push({ x: Math.random()*width, y: Math.random()*height, size: Math.random()*1.5, speed: Math.random()*0.3+0.05, opacity: Math.random(), change: (Math.random()-0.5)*0.02 });
         }
-
         function animateStars() {
             ctx.clearRect(0, 0, width, height);
             stars.forEach(s => {
                 ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
-                ctx.fill();
-                s.y -= s.speed;
-                if(s.y < 0) s.y = height;
-                s.opacity += s.change;
-                if(s.opacity > 1 || s.opacity < 0.2) s.change = -s.change;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+                s.y -= s.speed; if(s.y<0) s.y=height;
+                s.opacity += s.change; if(s.opacity>1||s.opacity<0.2) s.change = -s.change;
             });
             requestAnimationFrame(animateStars);
         }
+        window.addEventListener('resize', initStars);
         
-        window.addEventListener('resize', resizeStars);
-        
-        // --- 启动 ---
+        // Start
         init();
-
     </script>
 </body>
 </html>

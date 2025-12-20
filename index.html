@@ -16,11 +16,8 @@
             --text-sub: #94a3b8;
             --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%);
             
-            /* Grid 模式图标 */
             --icon-size-grid: 46px; 
             --icon-font-grid: 1.5rem;
-            
-            /* List 模式图标 */
             --icon-size-list: 24px;
             --icon-font-list: 0.85rem;
         }
@@ -122,13 +119,7 @@
             border-color: rgba(255,255,255,0.2);
         }
 
-        /* --- Search (已修复定位问题) --- */
-        .search-wrapper { 
-            margin-bottom: 25px; 
-            max-width: 100%; 
-            position: relative; /* 关键修复：让内部的绝对定位图标以此为基准 */
-        }
-
+        .search-wrapper { margin-bottom: 25px; max-width: 100%; position: relative; }
         .search-input {
             width: 100%;
             padding: 14px 18px 14px 42px;
@@ -146,16 +137,7 @@
             background: rgba(30, 41, 59, 0.8);
             box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
         }
-        
-        .search-icon { 
-            position: absolute; 
-            left: 16px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            color: var(--text-sub); 
-            font-size: 0.9rem;
-            pointer-events: none; /* 防止遮挡输入点击 */
-        }
+        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 0.9rem; pointer-events: none;}
 
         /* --- Grid Layout System --- */
         .grid {
@@ -164,108 +146,35 @@
             transition: 0.3s;
         }
 
-        /* === Mode 1: Grid View === */
-        .grid.view-grid {
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        }
+        /* Mode 1: Grid */
+        .grid.view-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .grid.view-grid .card { flex-direction: column; text-align: left; }
         .grid.view-grid .card-icon-box {
-            width: var(--icon-size-grid);
-            height: var(--icon-size-grid);
-            font-size: var(--icon-font-grid);
-            margin-bottom: 15px;
-            border-radius: 12px;
+            width: var(--icon-size-grid); height: var(--icon-size-grid);
+            font-size: var(--icon-font-grid); margin-bottom: 15px; border-radius: 12px;
         }
-        .grid.view-grid .card-actions {
-            border-top: 1px solid var(--glass-border);
-            margin-top: auto;
-            padding: 15px 24px;
-        }
-        .grid.view-grid .desc {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+        .grid.view-grid .card-actions { border-top: 1px solid var(--glass-border); margin-top: auto; padding: 15px 24px; }
+        .grid.view-grid .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-        /* === Mode 2: List View (Full Width) === */
-        .grid.view-list {
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-
-        .grid.view-list .card {
-            flex-direction: row;
-            align-items: center;
-            padding: 8px 16px; 
-            min-height: 54px;
-            border-radius: 8px;
-        }
-
-        .grid.view-list .card-main {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 0;
-            flex: 1;
-            min-width: 0; 
-        }
-
+        /* Mode 2: List */
+        .grid.view-list { grid-template-columns: 1fr; gap: 10px; }
+        .grid.view-list .card { flex-direction: row; align-items: center; padding: 8px 16px; min-height: 54px; border-radius: 8px; }
+        .grid.view-list .card-main { display: flex; align-items: center; gap: 15px; padding: 0; flex: 1; min-width: 0; }
         .grid.view-list .card-icon-box {
-            width: var(--icon-size-list);
-            height: var(--icon-size-list);
-            font-size: var(--icon-font-list);
-            margin-bottom: 0;
-            flex-shrink: 0;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.03);
+            width: var(--icon-size-list); height: var(--icon-size-list);
+            font-size: var(--icon-font-list); margin-bottom: 0; flex-shrink: 0;
+            border-radius: 6px; background: rgba(255,255,255,0.03);
         }
-
-        .grid.view-list .text-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            min-width: 0;
-        }
-
-        .grid.view-list h3 { 
-            margin: 0; 
-            font-size: 0.9rem; 
-            white-space: nowrap; 
-            min-width: 160px; 
-        }
-        
-        .grid.view-list p.desc { 
-            display: block;
-            margin: 0;
-            font-size: 0.85rem;
-            color: rgba(148, 163, 184, 0.6);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-
-        .grid.view-list .tags {
-            margin-top: 0;
-            gap: 6px;
-            flex-shrink: 0;
-        }
+        .grid.view-list .text-content { flex: 1; display: flex; align-items: center; gap: 20px; min-width: 0; }
+        .grid.view-list h3 { margin: 0; font-size: 0.9rem; white-space: nowrap; min-width: 160px; }
+        .grid.view-list p.desc { display: block; margin: 0; font-size: 0.85rem; color: rgba(148, 163, 184, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .grid.view-list .tags { margin-top: 0; gap: 6px; flex-shrink: 0; }
         .grid.view-list .tag { padding: 1px 6px; font-size: 0.65rem; border-radius: 4px; }
-
-        .grid.view-list .card-actions {
-            border-top: none;
-            background: transparent;
-            padding: 0 0 0 20px;
-            gap: 12px;
-            flex-direction: row;
-            flex-shrink: 0;
-        }
+        .grid.view-list .card-actions { border-top: none; background: transparent; padding: 0 0 0 20px; gap: 12px; flex-direction: row; flex-shrink: 0; }
         .grid.view-list .btn-text span { display: none; }
         .grid.view-list .btn-text i { font-size: 0.9rem; color: var(--text-sub); }
         .grid.view-list .btn-text:hover i { color: #fff; }
-        
+
         @media (max-width: 768px) {
             .grid.view-list .text-content { flex-direction: column; align-items: flex-start; gap: 2px; }
             .grid.view-list p.desc { display: none; }
@@ -275,49 +184,24 @@
 
         /* --- Card Common --- */
         .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            position: relative;
-            transition: all 0.2s ease;
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 16px;
+            overflow: hidden; display: flex; position: relative; transition: all 0.2s ease;
         }
-        .card:hover {
-            border-color: rgba(167, 139, 250, 0.4);
-            background: rgba(30, 41, 59, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .card-main { padding: 24px; text-decoration: none; color: inherit; }
-
-        .card-icon-box {
-            background: rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .card:hover { border-color: rgba(167, 139, 250, 0.4); background: rgba(30, 41, 59, 0.8); transform: translateY(-2px); }
+        .card-main { padding: 24px; text-decoration: none; color: inherit; width: 100%; }
+        .card-icon-box { background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
         .card-icon-box i { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .card-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0,0,0,0.2);
-        }
-
-        .btn-text {
-            font-size: 0.85rem; font-weight: 500; text-decoration: none; color: var(--text-sub);
-            display: flex; align-items: center; gap: 6px; transition: 0.2s;
-        }
+        .card-actions { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
+        .btn-text { font-size: 0.85rem; font-weight: 500; text-decoration: none; color: var(--text-sub); display: flex; align-items: center; gap: 6px; transition: 0.2s; }
         .btn-text:hover { color: #fff; }
-        
         .tags { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
         .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.05); }
 
+        .loading-spinner {
+            grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-sub);
+        }
         .hidden { display: none !important; }
-
     </style>
 </head>
 <body>
@@ -335,7 +219,7 @@
             <div class="header-controls">
                 <a href="#" id="gh-link" class="github-badge" target="_blank">
                     <i class="fab fa-github"></i>
-                    <span id="star-display">Stars...</span>
+                    <span id="star-display">Loading...</span>
                 </a>
                 <button class="icon-btn active" id="btn-grid" onclick="switchView('grid')" title="Grid View">
                     <i class="fas fa-border-all"></i>
@@ -355,307 +239,215 @@
         </div>
 
         <div class="grid view-grid" id="projectGrid">
-
-            <div class="card" data-folder="CyberHand">
-                <a href="CyberHand/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-robot"></i></div>
-                    <div class="text-content">
-                        <h3>CyberHand</h3>
-                        <p class="desc" data-en="Robotic hand control interface with servo logic visualization." data-zh="赛博机械手控制终端。舵机逻辑与状态可视化。">Robotic hand control interface with servo logic visualization.</p>
-                        <div class="tags"><span class="tag">Robotics</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="CyberHand/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
+            <div class="loading-spinner">
+                <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+                <p style="margin-top:10px;">Scanning Repository...</p>
             </div>
-
-            <div class="card" data-folder="Holographic Workbench">
-                <a href="Holographic Workbench/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-cube"></i></div>
-                    <div class="text-content">
-                        <h3>Holographic Bench</h3>
-                        <p class="desc" data-en="Futuristic holographic workbench concept exploring spatial UI." data-zh="全息工作台概念验证。探索空间 UI 交互设计。">Futuristic holographic workbench concept exploring spatial UI.</p>
-                        <div class="tags"><span class="tag">3D UI</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="Holographic Workbench/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
             </div>
-
-            <div class="card" data-folder="IMU Dashboard V4">
-                <a href="IMU Dashboard V4/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-compass"></i></div>
-                    <div class="text-content">
-                        <h3>IMU Dashboard V4</h3>
-                        <p class="desc" data-en="4th Gen Inertial Navigation System dashboard via WebSerial." data-zh="第四代惯性导航系统仪表盘。WebSerial 数据流。">4th Gen Inertial Navigation System dashboard via WebSerial.</p>
-                        <div class="tags"><span class="tag">Serial</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="IMU Dashboard V4/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="IMU 姿态可视化 - 二战坦克版">
-                <a href="IMU 姿态可视化 - 二战坦克版/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-fighter-jet"></i></div>
-                    <div class="text-content">
-                        <h3>Tank Telemetry</h3>
-                        <p class="desc" data-en="Real-time 3D tank model attitude tracking with IMU sensors." data-zh="二战坦克模型姿态跟随。IMU 数据 3D 映射。">Real-time 3D tank model attitude tracking with IMU sensors.</p>
-                        <div class="tags"><span class="tag">Three.js</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="IMU 姿态可视化 - 二战坦克版/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="Interactive Lidar App">
-                <a href="Interactive Lidar App/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-satellite-dish"></i></div>
-                    <div class="text-content">
-                        <h3>Lidar Interface</h3>
-                        <p class="desc" data-en="Interactive point cloud visualization and analysis tool." data-zh="交互式激光雷达展示。点云缩放与分析。">Interactive point cloud visualization and analysis tool.</p>
-                        <div class="tags"><span class="tag">Lidar</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="Interactive Lidar App/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="mpu6050_viewer">
-                <a href="mpu6050_viewer/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-chart-line"></i></div>
-                    <div class="text-content">
-                        <h3>MPU6050 Viewer</h3>
-                        <p class="desc" data-en="Raw sensor data waveform plotting and attitude calculation." data-zh="六轴传感器数据可视化与姿态解算。">Raw sensor data waveform plotting and attitude calculation.</p>
-                        <div class="tags"><span class="tag">Sensor</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="mpu6050_viewer/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="NEO-INTERFACE HUD">
-                <a href="NEO-INTERFACE HUD/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-eye"></i></div>
-                    <div class="text-content">
-                        <h3>NEO HUD System</h3>
-                        <p class="desc" data-en="Sci-fi style Head-Up Display component library." data-zh="科幻风格 HUD 组件库。赛博朋克 UI 元素。">Sci-fi style Head-Up Display component library.</p>
-                        <div class="tags"><span class="tag">UI/UX</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="NEO-INTERFACE HUD/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="PID数据画图_三个数值_2_0">
-                <a href="PID数据画图_三个数值_2_0/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-wave-square"></i></div>
-                    <div class="text-content">
-                        <h3>PID Plotter</h3>
-                        <p class="desc" data-en="3-Channel real-time PID data visualization tool." data-zh="PID 实时调参波形图。三通道数据显示。">3-Channel real-time PID data visualization tool.</p>
-                        <div class="tags"><span class="tag">Control</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="PID数据画图_三个数值_2_0/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="quad_ahrs.html">
-                <a href="quad_ahrs.html/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-plane"></i></div>
-                    <div class="text-content">
-                        <h3>Quad AHRS Sim</h3>
-                        <p class="desc" data-en="Quad-copter Attitude and Heading Reference System simulation." data-zh="四轴姿态解算仿真。四元数与欧拉角变换。">Quad-copter Attitude and Heading Reference System simulation.</p>
-                        <div class="tags"><span class="tag">Flight</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="quad_ahrs.html/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="ray-casting-simulator">
-                <a href="ray-casting-simulator/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-lightbulb"></i></div>
-                    <div class="text-content">
-                        <h3>Ray Caster</h3>
-                        <p class="desc" data-en="2D Ray Casting algorithm for POV and shadow calculation." data-zh="2D 光线投射算法。FPS 视野与阴影计算。">2D Ray Casting algorithm for POV and shadow calculation.</p>
-                        <div class="tags"><span class="tag">Algo</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="ray-casting-simulator/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="Web Audio 频谱分析仪">
-                <a href="Web Audio 频谱分析仪/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-music"></i></div>
-                    <div class="text-content">
-                        <h3>Audio Spectrum</h3>
-                        <p class="desc" data-en="Real-time audio FFT analysis using Web Audio API." data-zh="音频频谱分析仪。实时 FFT 转换与绘制。">Real-time audio FFT analysis using Web Audio API.</p>
-                        <div class="tags"><span class="tag">DSP</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="Web Audio 频谱分析仪/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="串口数据画图_两个传感器_1_0">
-                <a href="串口数据画图_两个传感器_1_0/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-plug"></i></div>
-                    <div class="text-content">
-                        <h3>Dual Serial Plotter</h3>
-                        <p class="desc" data-en="Comparison tool for dual sensor serial data streams." data-zh="双路串口绘图工具。多传感器数据对比。">Comparison tool for dual sensor serial data streams.</p>
-                        <div class="tags"><span class="tag">Tool</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="串口数据画图_两个传感器_1_0/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="mindmap">
-                <a href="mindmap/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-project-diagram"></i></div>
-                    <div class="text-content">
-                        <h3>Mindmap V1</h3>
-                        <p class="desc" data-en="Early version of mind mapping component with canvas." data-zh="思维导图组件 V1.0。早期节点渲染与拖拽。">Early version of mind mapping component with canvas.</p>
-                        <div class="tags"><span class="tag">Canvas</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="mindmap/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="mindmap_2">
-                <a href="mindmap_2/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-sitemap"></i></div>
-                    <div class="text-content">
-                        <h3>Mindmap V2</h3>
-                        <p class="desc" data-en="Upgraded mind map structure with advanced hierarchy." data-zh="思维导图组件 V2.0。支持复杂层级与样式。">Upgraded mind map structure with advanced hierarchy.</p>
-                        <div class="tags"><span class="tag">Docs</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="mindmap_2/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="GlobalEdu Strategy">
-                <a href="GlobalEdu Strategy/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-graduation-cap"></i></div>
-                    <div class="text-content">
-                        <h3>Edu Strategy</h3>
-                        <p class="desc" data-en="Static presentation page for Global Education Strategy." data-zh="全球教育策略展示页。静态信息展示。">Static presentation page for Global Education Strategy.</p>
-                        <div class="tags"><span class="tag">Web</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="GlobalEdu Strategy/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-            <div class="card" data-folder="global_relationships_report">
-                <a href="global_relationships_report/" class="card-main">
-                    <div class="card-icon-box"><i class="fas fa-globe-asia"></i></div>
-                    <div class="text-content">
-                        <h3>Global Relations</h3>
-                        <p class="desc" data-en="Complex network visualization for global reports." data-zh="全球关系报告可视化。复杂网络图表。">Complex network visualization for global reports.</p>
-                        <div class="tags"><span class="tag">D3.js</span></div>
-                    </div>
-                </a>
-                <div class="card-actions">
-                    <a href="global_relationships_report/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
-                    <a href="#" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
-                </div>
-            </div>
-
-        </div>
     </div>
 
     <script>
         // ============================================
-        // ⚠️ 配置区域: 记得改这里!
+        // 🛠️ 核心配置区域
         // ============================================
         const CONFIG = {
             user: "starryguli",
             repo: "My-Web-Projects",
-            branch: "main"
+            branch: "main",
+            
+            // 忽略的文件夹 (不显示在主页)
+            exclude: ['.git', '.github', 'images', 'thumbnails', 'css', 'js', 'CNAME'],
+
+            // ⚠️ 项目元数据配置
+            // 1. 如果文件夹在这里有记录，就显示你自定义的图标和描述。
+            // 2. 如果文件夹没在这里记录，会自动显示为【默认图标 + 文件夹名】(实现自动更新)。
+            // 3. 这里的 key (键名) 必须和你仓库里的【文件夹名】完全一致！
+            projects: {
+                "CyberHand": {
+                    icon: "fas fa-robot",
+                    en: "Robotic hand control interface with servo logic visualization.",
+                    zh: "赛博机械手控制终端。舵机逻辑与状态可视化。",
+                    tags: ["Robotics"]
+                },
+                "Holographic Workbench": {
+                    icon: "fas fa-cube",
+                    en: "Futuristic holographic workbench concept exploring spatial UI.",
+                    zh: "全息工作台概念验证。探索空间 UI 交互设计。",
+                    tags: ["3D UI"]
+                },
+                "IMU Dashboard V4": {
+                    icon: "fas fa-compass",
+                    en: "4th Gen Inertial Navigation System dashboard via WebSerial.",
+                    zh: "第四代惯性导航系统仪表盘。WebSerial 数据流。",
+                    tags: ["Serial"]
+                },
+                "IMU 姿态可视化 - 二战坦克版": {
+                    icon: "fas fa-fighter-jet",
+                    en: "Real-time 3D tank model attitude tracking with IMU sensors.",
+                    zh: "二战坦克模型姿态跟随。IMU 数据 3D 映射。",
+                    tags: ["Three.js"]
+                },
+                "Interactive Lidar App": {
+                    icon: "fas fa-satellite-dish",
+                    en: "Interactive point cloud visualization and analysis tool.",
+                    zh: "交互式激光雷达展示。点云缩放与分析。",
+                    tags: ["Lidar"]
+                },
+                "mpu6050_viewer": {
+                    icon: "fas fa-chart-line",
+                    en: "Raw sensor data waveform plotting and attitude calculation.",
+                    zh: "六轴传感器数据可视化与姿态解算。",
+                    tags: ["Sensor"]
+                },
+                "NEO-INTERFACE HUD": {
+                    icon: "fas fa-eye",
+                    en: "Sci-fi style Head-Up Display component library.",
+                    zh: "科幻风格 HUD 组件库。赛博朋克 UI 元素。",
+                    tags: ["UI/UX"]
+                },
+                "PID数据画图_三个数值_2_0": {
+                    icon: "fas fa-wave-square",
+                    en: "3-Channel real-time PID data visualization tool.",
+                    zh: "PID 实时调参波形图。三通道数据显示。",
+                    tags: ["Control"]
+                },
+                "quad_ahrs.html": {
+                    icon: "fas fa-plane",
+                    en: "Quad-copter Attitude and Heading Reference System simulation.",
+                    zh: "四轴姿态解算仿真。四元数与欧拉角变换。",
+                    tags: ["Flight"]
+                },
+                "ray-casting-simulator": {
+                    icon: "fas fa-lightbulb",
+                    en: "2D Ray Casting algorithm for POV and shadow calculation.",
+                    zh: "2D 光线投射算法。FPS 视野与阴影计算。",
+                    tags: ["Algo"]
+                },
+                "Web Audio 频谱分析仪": {
+                    icon: "fas fa-music",
+                    en: "Real-time audio FFT analysis using Web Audio API.",
+                    zh: "音频频谱分析仪。实时 FFT 转换与绘制。",
+                    tags: ["DSP"]
+                },
+                "串口数据画图_两个传感器_1_0": {
+                    icon: "fas fa-plug",
+                    en: "Comparison tool for dual sensor serial data streams.",
+                    zh: "双路串口绘图工具。多传感器数据对比。",
+                    tags: ["Tool"]
+                },
+                "mindmap": {
+                    icon: "fas fa-project-diagram",
+                    en: "Early version of mind mapping component with canvas.",
+                    zh: "思维导图组件 V1.0。早期节点渲染与拖拽。",
+                    tags: ["Canvas"]
+                },
+                "mindmap_2": { // 如果你还没改名，这里可能要写 "mindmap _2"
+                    icon: "fas fa-sitemap",
+                    en: "Upgraded mind map structure with advanced hierarchy.",
+                    zh: "思维导图组件 V2.0。支持复杂层级与样式。",
+                    tags: ["Docs"]
+                },
+                "GlobalEdu Strategy": {
+                    icon: "fas fa-graduation-cap",
+                    en: "Static presentation page for Global Education Strategy.",
+                    zh: "全球教育策略展示页。静态信息展示。",
+                    tags: ["Web"]
+                },
+                "global_relationships_report": {
+                    icon: "fas fa-globe-asia",
+                    en: "Complex network visualization for global reports.",
+                    zh: "全球关系报告可视化。复杂网络图表。",
+                    tags: ["D3.js"]
+                }
+            }
         };
 
-        // 1. Starry Background
-        const canvas = document.getElementById('star-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height, stars = [];
-
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+        // ============================================
+        // 🚀 核心逻辑
+        // ============================================
+        
+        let isEnglish = true;
+        
+        // 1. 初始化
+        async function init() {
             initStars();
+            animateStars();
+            
+            // 并行执行：获取 Star 数 + 获取文件列表
+            fetchStats();
+            await fetchAndRenderProjects();
         }
 
-        function initStars() {
-            const count = Math.floor((width * height) / 8000); 
-            stars = [];
-            for(let i=0; i<count; i++) {
-                stars.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    size: Math.random() * 1.5,
-                    speed: Math.random() * 0.3 + 0.05,
-                    opacity: Math.random(),
-                    change: (Math.random() - 0.5) * 0.02
+        // 2. 获取并渲染项目列表 (GitHub API)
+        async function fetchAndRenderProjects() {
+            const grid = document.getElementById('projectGrid');
+            
+            try {
+                // 请求 GitHub 仓库内容
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/`);
+                if(!res.ok) throw new Error("API Limit or Network Error");
+                
+                const data = await res.json();
+                
+                // 1. 过滤：只保留文件夹，且不在忽略列表中
+                const folders = data.filter(item => 
+                    item.type === 'dir' && !CONFIG.exclude.includes(item.name)
+                );
+
+                // 2. 清空 Loading
+                grid.innerHTML = '';
+
+                // 3. 生成 HTML
+                folders.forEach(folder => {
+                    const name = folder.name;
+                    // 尝试获取配置，如果没有则使用默认值 (Auto-Discovery)
+                    const meta = CONFIG.projects[name] || {
+                        icon: "fas fa-folder", // 默认图标
+                        en: "Auto-detected project folder.", // 默认英文
+                        zh: "自动检测到的项目文件夹。", // 默认中文
+                        tags: ["New"] // 默认标签
+                    };
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.setAttribute('data-folder', name); // 用于搜索
+                    
+                    // 构建 Tags HTML
+                    const tagsHtml = meta.tags.map(t => `<span class="tag">${t}</span>`).join('');
+                    
+                    // URL 编码 (解决空格问题)
+                    const safeLink = encodeURIComponent(name);
+
+                    card.innerHTML = `
+                        <a href="${safeLink}/" class="card-main">
+                            <div class="card-icon-box"><i class="${meta.icon}"></i></div>
+                            <div class="text-content">
+                                <h3>${name}</h3>
+                                <p class="desc" data-en="${meta.en}" data-zh="${meta.zh}">${isEnglish ? meta.en : meta.zh}</p>
+                                <div class="tags">${tagsHtml}</div>
+                            </div>
+                        </a>
+                        <div class="card-actions">
+                            <a href="${safeLink}/" class="btn-text"><span>Demo</span> <i class="fas fa-arrow-right"></i></a>
+                            <a href="https://github.com/${CONFIG.user}/${CONFIG.repo}/tree/${CONFIG.branch}/${safeLink}" class="btn-text code-link" target="_blank"><span>Code</span> <i class="fab fa-github"></i></a>
+                        </div>
+                    `;
+                    grid.appendChild(card);
                 });
+
+                // 更新搜索框 placeholder
+                updateSearchPlaceholder();
+
+            } catch (error) {
+                console.error(error);
+                grid.innerHTML = `<div style="text-align:center; color:#ef4444; width:100%;">
+                    <i class="fas fa-exclamation-triangle"></i> Failed to load projects.<br>
+                    <small>Rate limit exceeded or network error.</small>
+                </div>`;
             }
         }
 
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            stars.forEach(s => {
-                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
-                ctx.fill();
-                s.y -= s.speed;
-                if(s.y < 0) s.y = height;
-                s.opacity += s.change;
-                if(s.opacity > 1 || s.opacity < 0.2) s.change = -s.change;
-            });
-            requestAnimationFrame(animate);
-        }
-        window.addEventListener('resize', resize);
-        resize();
-        animate();
-
-        // 2. View Switcher
+        // 3. 视图切换
         function switchView(mode) {
             const grid = document.getElementById('projectGrid');
             const btnGrid = document.getElementById('btn-grid');
@@ -674,25 +466,20 @@
             }
         }
 
-        // 3. Language Toggle
-        let isEnglish = true; 
+        // 4. 语言切换
         function toggleLang() {
             isEnglish = !isEnglish;
-            document.getElementById('searchInput').placeholder = isEnglish ? "Search projects..." : "搜索项目...";
+            updateSearchPlaceholder();
             document.querySelectorAll('.desc').forEach(p => {
                 p.innerText = isEnglish ? p.getAttribute('data-en') : p.getAttribute('data-zh');
             });
         }
-
-        // 4. Github Links & Stars
-        document.getElementById('gh-link').href = `https://github.com/${CONFIG.user}/${CONFIG.repo}`;
         
-        document.querySelectorAll('.card').forEach(card => {
-            const folder = card.getAttribute('data-folder');
-            const link = card.querySelector('.code-link');
-            if(folder && link) link.href = `https://github.com/${CONFIG.user}/${CONFIG.repo}/tree/${CONFIG.branch}/${encodeURIComponent(folder)}`;
-        });
+        function updateSearchPlaceholder() {
+            document.getElementById('searchInput').placeholder = isEnglish ? `Search ${document.querySelectorAll('.card').length} projects...` : `搜索 ${document.querySelectorAll('.card').length} 个项目...`;
+        }
 
+        // 5. 获取 Star 数
         async function fetchStats() {
             try {
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}`);
@@ -700,18 +487,67 @@
                 if(data.stargazers_count !== undefined) {
                     document.getElementById('star-display').innerHTML = `${data.stargazers_count} Stars`;
                 }
+                document.getElementById('gh-link').href = data.html_url;
             } catch(e) {}
         }
-        fetchStats();
 
-        // Search
+        // 6. 搜索功能
         document.getElementById('searchInput').addEventListener('keyup', (e) => {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.card').forEach(card => {
                 const text = card.innerText.toLowerCase();
-                card.classList.toggle('hidden', !text.includes(term));
+                const folder = card.getAttribute('data-folder').toLowerCase();
+                card.classList.toggle('hidden', !(text.includes(term) || folder.includes(term)));
             });
         });
+
+        // 7. 星空背景
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, stars = [];
+
+        function resizeStars() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            createStars();
+        }
+
+        function createStars() {
+            const count = Math.floor((width * height) / 8000); 
+            stars = [];
+            for(let i=0; i<count; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 1.5,
+                    speed: Math.random() * 0.3 + 0.05,
+                    opacity: Math.random(),
+                    change: (Math.random() - 0.5) * 0.02
+                });
+            }
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, width, height);
+            stars.forEach(s => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                ctx.fill();
+                s.y -= s.speed;
+                if(s.y < 0) s.y = height;
+                s.opacity += s.change;
+                if(s.opacity > 1 || s.opacity < 0.2) s.change = -s.change;
+            });
+            requestAnimationFrame(animateStars);
+        }
+        
+        window.addEventListener('resize', resizeStars);
+        
+        // --- 启动 ---
+        init();
 
     </script>
 </body>

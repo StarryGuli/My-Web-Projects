@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霍尔效应实验：亥姆霍兹线圈磁场分布</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p.desc {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+            width: 100%;
+        }
+        .btn-group {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>实验验证：磁场叠加原理与亥姆霍兹线圈特性</h2>
+        <p class="desc">
+            图中展示了左右线圈单独通电的磁场分布、实测叠加磁场以及理论计算的叠加磁场。<br>
+            <strong>黄色区域</strong>表示磁场均匀区 (x=5cm 至 x=9cm)。
+        </p>
+        
+        <div class="chart-wrapper">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="window.print()">打印 / 保存为 PDF</button>
+        </div>
+    </div>
+
+    <script>
+        // === 1. 准备数据 (基于之前的计算结果) ===
+        const xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+        const dataLeft = [0.02, 0.03, 0.04, 0.05, 0.06, 0.09, 0.12, 0.17, 0.21, 0.23, 0.23, 0.20, 0.15, 0.11];
+        const dataRight = [0.08, 0.10, 0.13, 0.16, 0.20, 0.28, 0.26, 0.20, 0.15, 0.11, 0.08, 0.06, 0.04, 0.03];
+        const dataMeasured = [0.10, 0.15, 0.22, 0.28, 0.33, 0.36, 0.37, 0.36, 0.35, 0.34, 0.31, 0.26, 0.21, 0.18];
+        
+        // 计算理论叠加值 (B左 + B右)
+        const dataCalculated = dataLeft.map((val, index) => val + dataRight[index]);
+
+        // === 2. 配置 Chart.js ===
+        // 这是一个自定义插件，用于在背景绘制黄色矩形（均匀区）
+        const uniformRegionPlugin = {
+            id: 'uniformRegion',
+            beforeDraw: (chart) => {
+                const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+                const startX = x.getPixelForValue(5); // x=5
+                const endX = x.getPixelForValue(9);   // x=9
+                
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 235, 59, 0.2)'; // 半透明黄色
+                ctx.fillRect(startX, top, endX - startX, bottom - top);
+                
+                // 添加文字标注
+                ctx.fillStyle = '#fbc02d';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('均匀磁场区', (startX + endX) / 2, top + 20);
+                ctx.restore();
+            }
+        };
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: xLabels,
+                datasets: [
+                    {
+                        label: '① 左线圈 (Left Coil)',
+                        data: dataLeft,
+                        borderColor: '#2196F3', // 蓝色
+                        backgroundColor: '#2196F3',
+                        borderDash: [5, 5], // 虚线
+                        borderWidth: 2,
+                        pointStyle: 'circle',
+                        tension: 0.4
+                    },
+                    {
+                        label: '② 右线圈 (Right Coil)',
+                        data: dataRight,
+                        borderColor: '#FF9800', // 橙色
+                        backgroundColor: '#FF9800',
+                        borderDash: [5, 5], // 虚线
+                        borderWidth: 2,
+                        pointStyle: 'triangle',
+                        tension: 0.4
+                    },
+                    {
+                        label: '③ 实测叠加 (Measured Combined)',
+                        data: dataMeasured,
+                        borderColor: '#4CAF50', // 绿色
+                        backgroundColor: '#4CAF50',
+                        borderWidth: 3, // 加粗实线
+                        pointRadius: 4,
+                        tension: 0.4
+                    },
+                    {
+                        label: '④ 理论叠加 (Calculated Sum)',
+                        data: dataCalculated,
+                        borderColor: '#F44336', // 红色
+                        backgroundColor: '#F44336',
+                        borderWidth: 0, // 不画线，只画点
+                        pointStyle: 'crossRot', // 叉号点
+                        pointRadius: 6,
+                        showLine: false // 仅显示数据点
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '霍尔片位置 x (cm)',
+                            font: { size: 14, weight: 'bold' }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '磁感应强度 B (mT)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' mT';
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [uniformRegionPlugin] // 启用自定义背景插件
+        });
+    </script>
+</body>
+</html>

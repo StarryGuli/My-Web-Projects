@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STM32 遥控系统可视化控制台 (USB & BLE)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #00d2ff;
+            --ble-color: #7d5fff;
+            --bar-bg: #444;
+            --motor-a: #ff4757;
+            --motor-b: #2ed573;
+            --terminal-bg: #000000;
+            --terminal-text: #00ff00;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 波特率选择框样式 */
+        select {
+            background-color: #333;
+            color: var(--text-color);
+            border: 1px solid var(--accent-color);
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            border: none;
+            padding: 10px 20px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button.ble-btn {
+            background-color: var(--ble-color);
+            color: white;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background-color: #555; cursor: not-allowed; transform: none; color: #888; }
+
+        /* 主布局 */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .dashboard-container {
+            flex: 2;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            padding-right: 5px;
+            align-content: start;
+        }
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 300px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .panel-title {
+            color: var(--accent-color);
+            margin-top: 0;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        /* 终端 */
+        #raw-data-box {
+            flex-grow: 1;
+            background-color: var(--terminal-bg);
+            color: var(--terminal-text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #444;
+        }
+        
+        .clear-btn {
+            background-color: #444;
+            color: white;
+            padding: 5px 10px;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+            align-self: flex-end;
+        }
+
+        /* 仪表盘组件 */
+        .bar-container { margin-bottom: 8px; display: flex; align-items: center; }
+        .bar-label { width: 40px; font-size: 0.9em; font-weight: bold; }
+        .progress-bg { flex-grow: 1; height: 8px; background-color: var(--bar-bg); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--accent-color); width: 0%; transition: width 0.1s linear; }
+        .bar-value { width: 40px; text-align: right; font-size: 0.8em; margin-left: 5px; font-family: monospace;}
+
+        .switch-group { display: flex; justify-content: space-around; margin-top: 10px; }
+        .switch-item { text-align: center; }
+        .switch-box { width: 36px; height: 50px; background-color: #444; margin: 0 auto 5px; border-radius: 4px; position: relative; }
+        .switch-handle { width: 26px; height: 16px; background-color: #bbb; position: absolute; left: 5px; transition: top 0.2s cubic-bezier(0.4, 0.0, 0.2, 1); border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .sw-0 { top: 4px; background-color: #00d2ff; } 
+        .sw-1 { top: 17px; background-color: #ffd700; } 
+        .sw-2 { top: 30px; background-color: #ff4757; } 
+
+        .adc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .dial-wrapper { text-align: center; }
+        .dial-circle { width: 60px; height: 60px; border: 3px solid #666; border-radius: 50%; margin: 0 auto; position: relative; background: radial-gradient(circle, #333 0%, #222 100%); }
+        .dial-needle { width: 45%; height: 2px; background-color: #ff4757; position: absolute; top: 50%; left: 50%; transform-origin: 0% 50%; transform: rotate(-90deg); transition: transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1); }
+        .dial-value { font-size: 1.1em; font-weight: bold; margin-top: 5px; color: var(--text-color); }
+
+        .motor-row { display: flex; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .motor-label { width: 30px; font-weight: bold; font-size: 1.1em; }
+        .pwm-viz { flex-grow: 1; display: flex; flex-direction: column; gap: 3px; }
+        .pwm-bar-bg { height: 6px; background-color: var(--bar-bg); border-radius: 3px; width: 100%; }
+        .pwm-fill-a { height: 100%; background-color: var(--motor-a); width: 0%; border-radius: 3px;}
+        .pwm-fill-b { height: 100%; background-color: var(--motor-b); width: 0%; border-radius: 3px;}
+        .pwm-text { font-size: 0.75em; color: #aaa; display: flex; justify-content: space-between; font-family: monospace;}
+
+        #status { font-size: 0.9em; margin-right: 15px; font-weight: bold; }
+        .connected { color: #2ed573; text-shadow: 0 0 5px #2ed573; }
+        .connected-ble { color: #7d5fff; text-shadow: 0 0 5px #7d5fff; }
+        .disconnected { color: #ff4757; }
+
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; overflow-y: auto; }
+            .dashboard-container { overflow-y: visible; }
+            .terminal-container { min-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>STM32 遥控系统控制台</h1>
+        <div class="control-group">
+            <span id="status" class="disconnected">未连接</span>
+            
+            <select id="baudRateSelect">
+                <option value="9600">9600</option>
+                <option value="19200">19200</option>
+                <option value="38400">38400</option>
+                <option value="57600">57600</option>
+                <option value="115200" selected>115200 (推荐)</option>
+                <option value="230400">230400</option>
+                <option value="250000">250000</option>
+                <option value="460800">460800</option>
+                <option value="921600">921600</option>
+            </select>
+
+            <button id="connectSerialBtn">连接 USB 串口</button>
+            <button id="connectBleBtn" class="ble-btn">连接蓝牙 (HM-10)</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="dashboard-container">
+            <div class="panel">
+                <h3 class="panel-title">SBUS 通道 (原始值)</h3>
+                <div id="sbus-container"></div>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="flex: 1; padding-right: 10px; border-right: 1px solid #444;">
+                        <h3 class="panel-title">开关状态</h3>
+                        <div class="switch-group">
+                            <div class="switch-item">
+                                <div class="switch-box"><div id="sw-a" class="switch-handle sw-1"></div></div>
+                                <div>A</div>
+                            </div>
+                            <div class="switch-item">
+                                <div class="switch-box"><div id="sw-b" class="switch-handle sw-1"></div></div>
+                                <div>B</div>
+                            </div>
+                            <div class="switch-item">
+                                <div class="switch-box"><div id="sw-c" class="switch-handle sw-1"></div></div>
+                                <div>C</div>
+                            </div>
+                            <div class="switch-item">
+                                <div class="switch-box"><div id="sw-d" class="switch-handle sw-1"></div></div>
+                                <div>D</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; padding-left: 10px;">
+                        <h3 class="panel-title">ADC 角度</h3>
+                        <div class="adc-grid">
+                            <div class="dial-wrapper">
+                                <div class="dial-circle"><div id="adc-needle-1" class="dial-needle"></div></div>
+                                <div class="dial-value" id="adc-val-1">0°</div>
+                            </div>
+                            <div class="dial-wrapper">
+                                <div class="dial-circle"><div id="adc-needle-2" class="dial-needle"></div></div>
+                                <div class="dial-value" id="adc-val-2">0°</div>
+                            </div>
+                            <div class="dial-wrapper">
+                                <div class="dial-circle"><div id="adc-needle-3" class="dial-needle"></div></div>
+                                <div class="dial-value" id="adc-val-3">0°</div>
+                            </div>
+                            <div class="dial-wrapper">
+                                <div class="dial-circle"><div id="adc-needle-4" class="dial-needle"></div></div>
+                                <div class="dial-value" id="adc-val-4">0°</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 class="panel-title">电机 PWM 输出</h3>
+                <div id="motor-container"></div>
+            </div>
+        </div>
+
+        <div class="terminal-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h3 class="panel-title" style="margin:0; border:none;">原始数据监视器</h3>
+                <button class="clear-btn" onclick="document.getElementById('raw-data-box').textContent=''">清空</button>
+            </div>
+            <div id="raw-data-box">等待连接 (USB 或 蓝牙)...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- UI Initialization ---
+        const sbusContainer = document.getElementById('sbus-container');
+        for(let i=1; i<=6; i++) {
+            sbusContainer.innerHTML += `
+                <div class="bar-container">
+                    <span class="bar-label">CH${i}</span>
+                    <div class="progress-bg"><div id="sbus-bar-${i}" class="progress-fill"></div></div>
+                    <span id="sbus-val-${i}" class="bar-value">0</span>
+                </div>`;
+        }
+        const motorContainer = document.getElementById('motor-container');
+        for(let i=1; i<=4; i++) {
+            motorContainer.innerHTML += `
+                <div class="motor-row">
+                    <div class="motor-label">M${i}</div>
+                    <div class="pwm-viz">
+                        <div class="pwm-text"><span>A: <span id="m${i}-a-val">0</span></span><span>B: <span id="m${i}-b-val">0</span></span></div>
+                        <div class="pwm-bar-bg"><div id="m${i}-a-bar" class="pwm-fill-a"></div></div>
+                        <div class="pwm-bar-bg"><div id="m${i}-b-bar" class="pwm-fill-b"></div></div>
+                    </div>
+                </div>`;
+        }
+
+        // --- Global State ---
+        const connectSerialBtn = document.getElementById('connectSerialBtn');
+        const connectBleBtn = document.getElementById('connectBleBtn');
+        const baudRateSelect = document.getElementById('baudRateSelect'); // 获取选择器
+        const statusSpan = document.getElementById('status');
+        const rawBox = document.getElementById('raw-data-box');
+
+        function updateRawLog(text) {
+            if (rawBox.textContent.length > 5000) rawBox.textContent = rawBox.textContent.substring(2000);
+            rawBox.textContent += text + "\n";
+            rawBox.scrollTop = rawBox.scrollHeight;
+        }
+
+        function setUIConnected(type) {
+            if (type === 'serial') {
+                statusSpan.textContent = `USB 已连接 (@${baudRateSelect.value})`;
+                statusSpan.className = "connected";
+                connectSerialBtn.textContent = "断开 USB";
+                connectBleBtn.disabled = true;
+                baudRateSelect.disabled = true; // 连接后禁止更改波特率
+            } else if (type === 'ble') {
+                statusSpan.textContent = "蓝牙 已连接";
+                statusSpan.className = "connected-ble";
+                connectBleBtn.textContent = "断开 蓝牙";
+                connectSerialBtn.disabled = true;
+                baudRateSelect.disabled = true;
+            }
+        }
+
+        function setUIDisconnected() {
+            statusSpan.textContent = "未连接";
+            statusSpan.className = "disconnected";
+            connectSerialBtn.textContent = "连接 USB 串口";
+            connectBleBtn.textContent = "连接蓝牙 (HM-10)";
+            connectSerialBtn.disabled = false;
+            connectBleBtn.disabled = false;
+            baudRateSelect.disabled = false; // 断开后允许更改
+            rawBox.textContent += ">>> 连接已断开。\n";
+        }
+
+        // --- USB Serial Logic ---
+        let port, reader, keepReading = false, readLoopPromise = null;
+
+        async function connectSerial() {
+            if ("serial" in navigator) {
+                try {
+                    // 获取用户选择的波特率
+                    const selectedBaud = parseInt(baudRateSelect.value);
+                    
+                    port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: selectedBaud }); // 使用变量
+                    
+                    setUIConnected('serial');
+                    rawBox.textContent = `>>> USB 串口已打开 (波特率: ${selectedBaud})，等待数据...\n`;
+                    
+                    keepReading = true;
+                    readLoopPromise = readSerialLoop();
+                } catch (err) {
+                    console.error("USB Error:", err);
+                    alert("连接失败: " + err.message);
+                }
+            } else {
+                alert("浏览器不支持 Web Serial API");
+            }
+        }
+
+        async function disconnectSerial() {
+            if (port && port.readable) {
+                keepReading = false;
+                if (reader) await reader.cancel();
+                if (readLoopPromise) await readLoopPromise;
+                await port.close();
+                port = null;
+                setUIDisconnected();
+            }
+        }
+
+        class LineBreakTransformer {
+            constructor() { this.container = ''; }
+            transform(chunk, controller) {
+                this.container += chunk;
+                const lines = this.container.split('\n');
+                this.container = lines.pop();
+                lines.forEach(line => controller.enqueue(line));
+            }
+            flush(controller) { controller.enqueue(this.container); }
+        }
+
+        async function readSerialLoop() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const readerStream = textDecoder.readable.pipeThrough(new TransformStream(new LineBreakTransformer()));
+            reader = readerStream.getReader();
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value && value.trim()) {
+                        updateRawLog(value.trim());
+                        parseLine(value.trim());
+                    }
+                }
+            } catch (error) { console.error("Read Error:", error); } 
+            finally { reader.releaseLock(); }
+        }
+
+        connectSerialBtn.addEventListener('click', () => {
+            if (port) disconnectSerial(); else connectSerial();
+        });
+
+        // --- BLE Logic ---
+        const HM10_SERVICE_UUID = 0xFFE0; 
+        const HM10_CHARACTERISTIC_UUID = 0xFFE1;
+        let bluetoothDevice, bleCharacteristic, bleBuffer = "";
+
+        async function connectBluetooth() {
+            if (!navigator.bluetooth) return alert('不支持 Web Bluetooth');
+            try {
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [HM10_SERVICE_UUID] }],
+                    optionalServices: [HM10_SERVICE_UUID]
+                });
+                bluetoothDevice.addEventListener('gattserverdisconnected', onBleDisconnected);
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService(HM10_SERVICE_UUID);
+                bleCharacteristic = await service.getCharacteristic(HM10_CHARACTERISTIC_UUID);
+                await bleCharacteristic.startNotifications();
+                bleCharacteristic.addEventListener('characteristicvaluechanged', handleBleData);
+                setUIConnected('ble');
+                rawBox.textContent += ">>> 蓝牙连接成功!\n";
+            } catch (error) { console.error('BLE Error:', error); alert('BLE 连接失败: ' + error); }
+        }
+
+        function disconnectBluetooth() {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) bluetoothDevice.gatt.disconnect();
+            else setUIDisconnected();
+        }
+
+        function onBleDisconnected() {
+            setUIDisconnected();
+            bleCharacteristic = null;
+            bluetoothDevice = null;
+        }
+
+        function handleBleData(event) {
+            const chunk = new TextDecoder('utf-8').decode(event.target.value);
+            bleBuffer += chunk;
+            if (bleBuffer.includes('\n')) {
+                const lines = bleBuffer.split('\n');
+                bleBuffer = lines.pop(); 
+                lines.forEach(line => {
+                    if(line.trim()) { updateRawLog(line.trim()); parseLine(line.trim()); }
+                });
+            }
+        }
+
+        connectBleBtn.addEventListener('click', () => {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) disconnectBluetooth(); else connectBluetooth();
+        });
+
+        // --- Parser ---
+        function parseLine(line) {
+            // SBUS
+            if (line.startsWith("SBUS:")) {
+                const match = line.match(/Raw\]:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+).*A\/B\/C\/D\]:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+                if (match) {
+                    for(let i=1; i<=6; i++) {
+                        const val = parseInt(match[i]);
+                        document.getElementById(`sbus-bar-${i}`).style.width = `${Math.min(100, Math.max(0, ((val - 200)/1550)*100))}%`;
+                        document.getElementById(`sbus-val-${i}`).textContent = val;
+                    }
+                    ['a','b','c','d'].forEach((k, idx) => {
+                        let s = 'sw-1'; if(match[7+idx]=='0') s='sw-0'; if(match[7+idx]=='2') s='sw-2';
+                        document.getElementById(`sw-${k}`).className = `switch-handle ${s}`;
+                    });
+                }
+            }
+            // ADC
+            if (line.startsWith("ADC Angles:")) {
+                const match = line.match(/\[1\]:\s*(-?\d+)\s+\[2\]:\s*(-?\d+)\s+\[3\]:\s*(-?\d+)\s+\[4\]:\s*(-?\d+)/);
+                if (match) for(let i=1; i<=4; i++) {
+                    const ang = parseInt(match[i]);
+                    document.getElementById(`adc-val-${i}`).textContent = ang + "°";
+                    document.getElementById(`adc-needle-${i}`).style.transform = `rotate(${ang - 90}deg)`;
+                }
+            }
+            // Motor
+            if (line.trim().match(/^M\d:/)) {
+                const match = line.match(/M(\d):\s*(\d+)\s+\/\s*(\d+)/);
+                if (match) {
+                    const id = match[1], a = parseInt(match[2]), b = parseInt(match[3]);
+                    document.getElementById(`m${id}-a-val`).textContent = a;
+                    document.getElementById(`m${id}-b-val`).textContent = b;
+                    document.getElementById(`m${id}-a-bar`).style.width = `${(a/199)*100}%`;
+                    document.getElementById(`m${id}-b-bar`).style.width = `${(b/199)*100}%`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
